@@ -56,7 +56,11 @@ export function initLifecycle (vm: Component) {
 }
 
 export function lifecycleMixin (Vue: Class<Component>) {
-  Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
+   // _update 方法作用为将 vnode 转换为真实 DOM
+   // 调用时机：
+   // 1. 首次渲染
+   // 2. 数据更新
+  Vue.prototype._update = function (vnode: VNode, hydrating?: boolean /* 非服务端渲染时为 false */) {
     const vm: Component = this
     const prevEl = vm.$el
     const prevVnode = vm._vnode
@@ -64,11 +68,16 @@ export function lifecycleMixin (Vue: Class<Component>) {
     vm._vnode = vnode
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
+
+    // ！！！核心方法：__patch__！！！
+    // 不同平台 __patch__ 不一样，web 版定义在 src/platforms/web/runtime/index.js
     if (!prevVnode) {
       // initial render
+      // 首次渲染
       vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
     } else {
       // updates
+      // 数据更新
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
     restoreActiveInstance()
@@ -191,7 +200,7 @@ export function mountComponent (
     // updateComponent 是下方渲染 watcher 的回调函数
     // ！！！渲染的核心！！！
     // vm._render() 的返回值为 vnode，定义在 src/core/instance/render.js
-    // vm._update() 会更新 DOM
+    // vm._update() 会将 vnode 转换为真实 DOM，定义在上方 lifecycleMixin 中
     updateComponent = () => {
       vm._update(vm._render(), hydrating)
     }

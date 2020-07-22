@@ -2,6 +2,8 @@
 
 import { namespaceMap } from 'web/util/index'
 
+// web 平台相关操纵 DOM 的 API（主要为原生的 DOM API）
+
 export function createElement (tagName: string, vnode: VNode): Element {
   const elm = document.createElement(tagName)
   if (tagName !== 'select') {

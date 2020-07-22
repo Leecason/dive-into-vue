@@ -67,6 +67,9 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
   return map
 }
 
+// 最终会返回一个 patch 方法，赋值给了 vm.__patch__，会在 vm._update 方法中被调用
+// 由于 web 和 weex 的平台差异化，操作 DOM 的方法是不一样的
+// 需要通过参数来区别差异，所以传入了不同平台的 backend 参数
 export function createPatchFunction (backend) {
   let i, j
   const cbs = {}
@@ -122,6 +125,8 @@ export function createPatchFunction (backend) {
 
   let creatingElmInVPre = 0
 
+   // ！！！重要！！！ 在返回的 patch 方法中被调用
+   // 作用为通过 vnode 创建真实的 DOM 然后插入到父节点中
   function createElm (
     vnode,
     insertedVnodeQueue,
@@ -141,14 +146,19 @@ export function createPatchFunction (backend) {
     }
 
     vnode.isRootInsert = !nested // for transition enter check
+
+    // 尝试创建子组件
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
     }
 
+    // 创建普通 DOM 节点
+
     const data = vnode.data
-    const children = vnode.children
-    const tag = vnode.tag
-    if (isDef(tag)) {
+    const children = vnode.children // 子节点
+    const tag = vnode.tag // 标签
+    if (isDef(tag)) { // 有标签
+      // 非生产环境对 tag 进行校验
       if (process.env.NODE_ENV !== 'production') {
         if (data && data.pre) {
           creatingElmInVPre++
@@ -163,6 +173,7 @@ export function createPatchFunction (backend) {
         }
       }
 
+      // 调用平台对应的 DOM 操作创建占位符元素
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
         : nodeOps.createElement(tag, vnode)
@@ -188,20 +199,23 @@ export function createPatchFunction (backend) {
           insert(parentElm, vnode.elm, refElm)
         }
       } else {
+        // 创建子节点
         createChildren(vnode, children, insertedVnodeQueue)
         if (isDef(data)) {
           invokeCreateHooks(vnode, insertedVnodeQueue)
         }
+        // 将 DOM 插入到父节点中
+        // ！！！由于是递归调用，所以子元素会优先 insert，所以整个 DOM 树节点的插入顺序为先子后父！！！
         insert(parentElm, vnode.elm, refElm)
       }
 
       if (process.env.NODE_ENV !== 'production' && data && data.pre) {
         creatingElmInVPre--
       }
-    } else if (isTrue(vnode.isComment)) {
+    } else if (isTrue(vnode.isComment)) { // vnode 为注释节点，直接插入到父节点中
       vnode.elm = nodeOps.createComment(vnode.text)
       insert(parentElm, vnode.elm, refElm)
-    } else {
+    } else { //  vnode 为纯文本节点，直接插入到父节点中
       vnode.elm = nodeOps.createTextNode(vnode.text)
       insert(parentElm, vnode.elm, refElm)
     }
@@ -269,6 +283,8 @@ export function createPatchFunction (backend) {
     insert(parentElm, vnode.elm, refElm)
   }
 
+  // 调用平台方法（nodeOps）将 DOM 插入到父节点中
+  // web 版定义在 src/platforms/web/runtime/node-ops.js
   function insert (parent, elm, ref) {
     if (isDef(parent)) {
       if (isDef(ref)) {
@@ -281,11 +297,13 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 创建 DOM 时创建子节点的方法
   function createChildren (vnode, children, insertedVnodeQueue) {
-    if (Array.isArray(children)) {
+    if (Array.isArray(children)) { // 子节点是数组
       if (process.env.NODE_ENV !== 'production') {
         checkDuplicateKeys(children)
       }
+      // 递归调用 createElm，会将 vnode.elm 作为父容器 DOM 节点占位符传入
       for (let i = 0; i < children.length; ++i) {
         createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i)
       }
@@ -301,6 +319,7 @@ export function createPatchFunction (backend) {
     return isDef(vnode.tag)
   }
 
+  // 执行所有 create 钩子，并将 vnode push 到 insertedVnodeQueue
   function invokeCreateHooks (vnode, insertedVnodeQueue) {
     for (let i = 0; i < cbs.create.length; ++i) {
       cbs.create[i](emptyNode, vnode)
@@ -697,6 +716,7 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 返回 patch 方法
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
@@ -711,12 +731,12 @@ export function createPatchFunction (backend) {
       isInitialPatch = true
       createElm(vnode, insertedVnodeQueue)
     } else {
-      const isRealElement = isDef(oldVnode.nodeType)
+      const isRealElement = isDef(oldVnode.nodeType) // oldVnode 是否为真实 DOM
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
         patchVnode(oldVnode, vnode, insertedVnodeQueue, null, null, removeOnly)
       } else {
-        if (isRealElement) {
+        if (isRealElement) { // oldVnode 为真实 DOM
           // mounting to a real element
           // check if this is server-rendered content and if we can perform
           // a successful hydration.
@@ -744,6 +764,7 @@ export function createPatchFunction (backend) {
         }
 
         // replacing existing element
+        // 首次渲染时 parentElm 为 oldElm 的父元素（通常是 #app 的父元素 body）
         const oldElm = oldVnode.elm
         const parentElm = nodeOps.parentNode(oldElm)
 

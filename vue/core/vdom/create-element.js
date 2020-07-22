@@ -135,7 +135,8 @@ export function _createElement (
     }
   } else {
     // direct component options / constructor
-    // 如果标签不为字符串，则直接创建一个组件 vnode
+    // 如果标签不为字符串，为组件对象或者组件构造函数时，例如 render: (h) => h(App)，则直接创建一个组件类型 vnode
+    // createComponent 定义在 src/core/vdom/create-component.js
     vnode = createComponent(tag, data, context, children)
   }
   if (Array.isArray(vnode)) {

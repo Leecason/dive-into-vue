@@ -33,6 +33,7 @@ import {
 } from 'weex/runtime/recycle-list/render-component-template'
 
 // inline hooks to be invoked on component VNodes during patch
+// 组件节点钩子函数，会在组件 vnode patch 过程中被调用
 const componentVNodeHooks = {
   init (vnode: VNodeWithData, hydrating: boolean): ?boolean {
     if (
@@ -98,6 +99,7 @@ const componentVNodeHooks = {
 
 const hooksToMerge = Object.keys(componentVNodeHooks)
 
+// 创建并返回组件 vnode
 export function createComponent (
   Ctor: Class<Component> | Function | Object | void,
   data: ?VNodeData,
@@ -109,10 +111,13 @@ export function createComponent (
     return
   }
 
+  // baseCtor 为 Vue 构造函数，定义在 src/core/global-api/index.js
   const baseCtor = context.$options._base
 
   // plain options object: turn it into a constructor
+  // 当传入 Ctor 为组件配置对象时，构建子类构造函数
   if (isObject(Ctor)) {
+    // 调用 Vue.extend，返回 Ctor 为子类构造函数
     Ctor = baseCtor.extend(Ctor)
   }
 
@@ -183,13 +188,14 @@ export function createComponent (
   }
 
   // install component management hooks onto the placeholder node
+  // 安装组件钩子函数
   installComponentHooks(data)
 
   // return a placeholder vnode
   const name = Ctor.options.name || tag
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
-    data, undefined, undefined, undefined, context,
+    data, undefined /* 组件 VNode 是没有 children 的 */, undefined, undefined, context,
     { Ctor, propsData, listeners, tag, children },
     asyncFactory
   )
@@ -223,12 +229,14 @@ export function createComponentInstanceForVnode (
   return new vnode.componentOptions.Ctor(options)
 }
 
+// 安装组件钩子函数，会合并到 vnode.data.hook 中，在组件 vnode patch 过程中执行这些钩子
 function installComponentHooks (data: VNodeData) {
   const hooks = data.hook || (data.hook = {})
   for (let i = 0; i < hooksToMerge.length; i++) {
     const key = hooksToMerge[i]
     const existing = hooks[key]
     const toMerge = componentVNodeHooks[key]
+    // 如果钩子已经存在，则调用 mergeHook 做合并，执行时会依次执行
     if (existing !== toMerge && !(existing && existing._merged)) {
       hooks[key] = existing ? mergeHook(toMerge, existing) : toMerge
     }

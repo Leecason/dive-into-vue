@@ -15,6 +15,8 @@ export function initExtend (Vue: GlobalAPI) {
 
   /**
    * Class inheritance
+   * 作用为构造一个 Vue 的子类构造函数 Sub
+   * 利用 JS 原型继承实现
    */
   Vue.extend = function (extendOptions: Object): Function {
     extendOptions = extendOptions || {}
@@ -31,7 +33,7 @@ export function initExtend (Vue: GlobalAPI) {
     }
 
     const Sub = function VueComponent (options) {
-      this._init(options)
+      this._init(options) // 子类会进入 Vue 实例的初始化逻辑
     }
     Sub.prototype = Object.create(Super.prototype)
     Sub.prototype.constructor = Sub
@@ -75,6 +77,7 @@ export function initExtend (Vue: GlobalAPI) {
     Sub.sealedOptions = extend({}, Sub.options)
 
     // cache constructor
+    // 缓存子类构造函数
     cachedCtors[SuperId] = Sub
     return Sub
   }

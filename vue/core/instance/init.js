@@ -27,8 +27,10 @@ export function initMixin (Vue: Class<Component>) {
     }
 
     // a flag to avoid this being observed
+    // 避免 vue 实例被 observe 的标记
     vm._isVue = true
     // merge options
+    // 合并配置
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
@@ -49,12 +51,14 @@ export function initMixin (Vue: Class<Component>) {
     }
     // expose real self
     vm._self = vm
-    initLifecycle(vm)
-    initEvents(vm)
-    initRender(vm)
+    initLifecycle(vm) // 初始化生命周期相关逻辑
+    initEvents(vm) // 初始化事件中心
+    initRender(vm) // 初始化渲染相关逻辑
     callHook(vm, 'beforeCreate')
+    // 在 data/props 初始化之前初始化 inject
     initInjections(vm) // resolve injections before data/props
-    initState(vm)
+    initState(vm) // 初始化 data，props，computed，watcher 等
+    // 在 data/props 初始化之后初始化 provide
     initProvide(vm) // resolve provide after data/props
     callHook(vm, 'created')
 
@@ -65,6 +69,7 @@ export function initMixin (Vue: Class<Component>) {
       measure(`vue ${vm._name} init`, startTag, endTag)
     }
 
+    // 如果有 el 属性，则挂载到 el 对应的 dom 上
     if (vm.$options.el) {
       vm.$mount(vm.$options.el)
     }

@@ -34,10 +34,14 @@ extend(Vue.options.components, platformComponents)
 Vue.prototype.__patch__ = inBrowser ? patch : noop
 
 // public mount method
+// 公共的 $mount 方法，会被 runtime only 的版本直接使用
+// 带 complier 版本则会先将 template 转换为 render 函数再调用此方法
 Vue.prototype.$mount = function (
   el?: string | Element,
-  hydrating?: boolean
+  hydrating?: boolean // 与服务端渲染相关
 ): Component {
+  // el 可以是字符串如 #app 或者直接是 DOM
+  // 如果是字符串则会 query 找到对应的 DOM
   el = el && inBrowser ? query(el) : undefined
   return mountComponent(this, el, hydrating)
 }

@@ -138,6 +138,8 @@ export function lifecycleMixin (Vue: Class<Component>) {
   }
 }
 
+// Vue 实例的挂载 $mount 最终会调用这个函数
+// 核心：实例化渲染 Watcher，vm._render() 和 vm._update() 方法
 export function mountComponent (
   vm: Component,
   el: ?Element,
@@ -186,6 +188,10 @@ export function mountComponent (
       measure(`vue ${name} patch`, startTag, endTag)
     }
   } else {
+    // updateComponent 是下方渲染 watcher 的回调函数
+    // ！！！渲染的核心！！！
+    // vm._render() 会生成虚拟 Node
+    // vm._update() 会更新 DOM
     updateComponent = () => {
       vm._update(vm._render(), hydrating)
     }
@@ -194,17 +200,22 @@ export function mountComponent (
   // we set this to vm._watcher inside the watcher's constructor
   // since the watcher's initial patch may call $forceUpdate (e.g. inside child
   // component's mounted hook), which relies on vm._watcher being already defined
+  // ！！！核心代码！！！
+  // 实例一个渲染 watcher，watcher 的回调是上方的 updateComponent
+  // 初始化时会执行一次回调，当 vm 实例中侦测的属性发生变化后，会触发 updateComponent 回调函数来完成组件的重新渲染
   new Watcher(vm, updateComponent, noop, {
     before () {
       if (vm._isMounted && !vm._isDestroyed) {
         callHook(vm, 'beforeUpdate')
       }
     }
-  }, true /* isRenderWatcher */)
+  }, true /* isRenderWatcher */) // 标记这个 watcher 实例为渲染 watcher
   hydrating = false
 
   // manually mounted instance, call mounted on self
   // mounted is called for render-created child components in its inserted hook
+  // 如果是根节点，设置 _isMounted 为 true，同时调用 mounted 钩子函数
+  // vm.$vnode 表示该实例的父 vnode，为 null 表示该节点为根节点
   if (vm.$vnode == null) {
     vm._isMounted = true
     callHook(vm, 'mounted')

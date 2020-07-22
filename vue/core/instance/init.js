@@ -70,6 +70,12 @@ export function initMixin (Vue: Class<Component>) {
     }
 
     // 如果有 el 属性，则挂载到 el 对应的 dom 上
+    // $mount 的实现和平台、构建方式都相关
+    // web 版 $mount:
+    //  带 complier: src/platform/web/entry-runtime-with-compiler.js
+    //  不带 complier: src/platform/web/runtime/index.js
+    // weex 版 $mount:
+    //  src/platform/weex/runtime/index.js
     if (vm.$options.el) {
       vm.$mount(vm.$options.el)
     }

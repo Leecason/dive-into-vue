@@ -130,7 +130,7 @@ export function createPatchFunction (backend) {
   function createElm (
     vnode,
     insertedVnodeQueue,
-    parentElm,
+    parentElm, // patch 方法中调用该函数渲染子组件时不会传入 parentElm
     refElm,
     nested,
     ownerArray,
@@ -221,10 +221,15 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 尝试创建子组件，返回 true 则表示创建成功
   function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
     let i = vnode.data
     if (isDef(i)) {
       const isReactivated = isDef(vnode.componentInstance) && i.keepAlive
+      // 回顾 src/core/vdom/create-component.js 文件中创建组件 vnode 的 createComponent 方法
+      // 因为在实例组件 vnode 时安装了一些钩子函数，其中包含 `init` 钩子
+      // 所以如果 vnode 为组件 vnode，下方的判断会成立并且 i 会等于 init，然后传入 vnode 并执行
+      // 在 src/core/vdom/create-component.js 查看 componentVNodeHooks（组件 vnode 钩子）的 init 钩子
       if (isDef(i = i.hook) && isDef(i = i.init)) {
         i(vnode, false /* hydrating */)
       }
@@ -234,7 +239,7 @@ export function createPatchFunction (backend) {
       // in that case we can just return the element and be done.
       if (isDef(vnode.componentInstance)) {
         initComponent(vnode, insertedVnodeQueue)
-        insert(parentElm, vnode.elm, refElm)
+        insert(parentElm, vnode.elm, refElm) // 完成组件的 DOM 插入，如果在组件 patch 过程中又创建了子组件，那么 DOM 插入顺序为先子后父
         if (isTrue(isReactivated)) {
           reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm)
         }
@@ -726,6 +731,7 @@ export function createPatchFunction (backend) {
     let isInitialPatch = false
     const insertedVnodeQueue = []
 
+    // patch 子组件时，传入的 oldVnode 为 vm.$el，即为 undefined，会进入到此分支
     if (isUndef(oldVnode)) {
       // empty mount (likely as component), create new root element
       isInitialPatch = true

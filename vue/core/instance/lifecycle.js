@@ -18,12 +18,21 @@ import {
   invokeWithErrorHandling
 } from '../util/index'
 
+// 全局变量，当前激活的实例（表示正在创建/更新的 vue 实例），传入子组件构建父子关系
+// 因为 JS 为单线程，Vue 的初始化是一个深度遍历过程
+// 会作为 createComponentInstanceForVnode 的参数被使用
+// 见 src/core/vdom/create-component.js 文件中 componentVNodeHooks 的 init 钩子函数
 export let activeInstance: any = null
 export let isUpdatingChildComponent: boolean = false
 
+// 设置当前激活的 vue 实例，并返回一个方法：将当前激活的 vue 实例设置为上一个激活实例
 export function setActiveInstance(vm: Component) {
   const prevActiveInstance = activeInstance
   activeInstance = vm
+  // 此时 activeInstance 和 preActiveInstance 为父子关系
+  // 在当前激活实例完成了所有的子树的 patch 或者 update 过程后，会调用下方返回的函数将
+  // activeInstance 还原，在创建子组件时会作为参数传入 createComponentInstanceForVnode
+  // 并且在子组件初始化时 initLifecycle 方法中将其设置为 vm.$parent 保留其父子关系
   return () => {
     activeInstance = prevActiveInstance
   }
@@ -33,14 +42,16 @@ export function initLifecycle (vm: Component) {
   const options = vm.$options
 
   // locate first non-abstract parent
+  // 在创建子组件过程中，parent 实际上是 createComponentInstanceForVnode 方法传入的 activeInstance
   let parent = options.parent
   if (parent && !options.abstract) {
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
-    parent.$children.push(vm)
+    parent.$children.push(vm) // 将当前实例存储到父 vue 实例的 $children 中
   }
 
+  // 将父 vue 实例设置到当前实例的 $parent 上，建立父子关系
   vm.$parent = parent
   vm.$root = parent ? parent.$root : vm
 
@@ -60,11 +71,16 @@ export function lifecycleMixin (Vue: Class<Component>) {
    // 调用时机：
    // 1. 首次渲染
    // 2. 数据更新
-  Vue.prototype._update = function (vnode: VNode, hydrating?: boolean /* 非服务端渲染时为 false */) {
+  Vue.prototype._update = function (vnode: VNode /* vm._render() 返回的 VNode */, hydrating?: boolean /* 非服务端渲染时为 false */) {
     const vm: Component = this
     const prevEl = vm.$el
     const prevVnode = vm._vnode
-    const restoreActiveInstance = setActiveInstance(vm)
+    const restoreActiveInstance = setActiveInstance(vm) // 设置 vm 为正在创建中的当前激活的实例，并返回一个方法将此设置还原
+    // 将 vm._vnode 设置为渲染 vnode
+    // 父子关系：
+    //  vm._vnode：当前实例对应的渲染 vnode
+    //  vm.$vnode：当前实例对应的渲染 vnode 的父 vnode
+    //  vm._vnode.parent = vm.$vnode
     vm._vnode = vnode
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
@@ -80,7 +96,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
       // 数据更新
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
-    restoreActiveInstance()
+    restoreActiveInstance() // 在子组件完成 patch 或者 update 过程后，将 activeInstance 还原为父实例
     // update __vue__ reference
     if (prevEl) {
       prevEl.__vue__ = null

@@ -31,7 +31,7 @@ export function initMixin (Vue: Class<Component>) {
     vm._isVue = true
     // merge options
     // 合并配置
-    if (options && options._isComponent) {
+    if (options && options._isComponent) { // 当前实例为组件
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
@@ -69,19 +69,24 @@ export function initMixin (Vue: Class<Component>) {
       measure(`vue ${vm._name} init`, startTag, endTag)
     }
 
-    // 如果有 el 属性，则挂载到 el 对应的 dom 上
+    // 1.如果有 el 属性，则挂载到 el 对应的 dom 上
     // $mount 的实现和平台、构建方式都相关
     // web 版 $mount:
     //  带 complier: src/platform/web/entry-runtime-with-compiler.js
     //  不带 complier: src/platform/web/runtime/index.js
     // weex 版 $mount:
     //  src/platform/weex/runtime/index.js
+
+    // 2.如果当前实例为组件实例，则没有 el
+    // 组件自己接管了 $mount 过程
+    // 可以在 src/core/vdom/create-component.js 文件中 componentVNodeHooks 的 init 函数中看到 child.$mount 的调用
     if (vm.$options.el) {
       vm.$mount(vm.$options.el)
     }
   }
 }
 
+// 将内部创建子组件时所传的参数合并到子组件 vm.$options 上
 export function initInternalComponent (vm: Component, options: InternalComponentOptions) {
   const opts = vm.$options = Object.create(vm.constructor.options)
   // doing this because it's faster than dynamic enumeration.

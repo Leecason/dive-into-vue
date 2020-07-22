@@ -44,12 +44,14 @@ const componentVNodeHooks = {
       // kept-alive components, treat as a patch
       const mountedNode: any = vnode // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode)
-    } else {
+    } else { // 在非 keepAlive 情况下，通过组件 vnode 创建组件 vue 实例
       const child = vnode.componentInstance = createComponentInstanceForVnode(
         vnode,
-        activeInstance
+        activeInstance // 子组件的父 vue 实例，为当前激活的 vue 实例
       )
-      child.$mount(hydrating ? vnode.elm : undefined, hydrating)
+      // 挂载子组件，由于组件 vue 实例初始化时不会传入 el，所以需要自己接管 $mount 过程
+      // 在 web 端下，下方代码实际上为 child.$mount(undefined, false)
+      child.$mount(hydrating ? vnode.elm : undefined, hydrating /* 非服务端渲染为 false */)
     }
   },
 
@@ -211,14 +213,15 @@ export function createComponent (
   return vnode
 }
 
+// 通过组件 vnode 创建子组件 vue 实例
 export function createComponentInstanceForVnode (
   vnode: any, // we know it's MountedComponentVNode but flow doesn't
   parent: any, // activeInstance in lifecycle state
 ): Component {
   const options: InternalComponentOptions = {
-    _isComponent: true,
-    _parentVnode: vnode,
-    parent
+    _isComponent: true, // 表示是一个组件
+    _parentVnode: vnode, // 子组件的父 vnode
+    parent // 子组件的父 vue 实例
   }
   // check inline-template render functions
   const inlineTemplate = vnode.data.inlineTemplate
@@ -226,6 +229,8 @@ export function createComponentInstanceForVnode (
     options.render = inlineTemplate.render
     options.staticRenderFns = inlineTemplate.staticRenderFns
   }
+  // vnode.componentOptions.Ctor 对应的是通过 Vue.extend 得到的子组件构造函数 Sub
+  // 下方代码相当于 new Sub(options)
   return new vnode.componentOptions.Ctor(options)
 }
 

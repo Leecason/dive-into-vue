@@ -85,6 +85,9 @@ export function renderMixin (Vue: Class<Component>) {
 
     // set parent vnode. this allows render functions to have access
     // to the data on the placeholder node.
+    // 在渲染组件 vnode 时，这里的 _parentVnode 为当前组件的父 vnode
+    // 见 src/core/vdom/create-component.js 的 createComponentInstanceForVnode 方法
+    // 即 vm.$vnode 为当前 vue 实例对应 vnode 的父 vnode
     vm.$vnode = _parentVnode
     // render self
     let vnode
@@ -95,7 +98,7 @@ export function renderMixin (Vue: Class<Component>) {
       currentRenderingInstance = vm
        // 在 mount 之前，如果写了 template 属性则会转换为 render 方法
        // vm.$createElement 定义在上方 initRender 函数中
-       // 最终会调用 createElement 返回 vnode
+       // 最终会调用 createElement 返回 vnode，这个 vnode 为当前组件的渲染 vnode
       vnode = render.call(vm._renderProxy, vm.$createElement)
     } catch (e) {
       handleError(e, vm, `render`)
@@ -131,6 +134,7 @@ export function renderMixin (Vue: Class<Component>) {
       vnode = createEmptyVNode()
     }
     // set parent
+    // 设置当前渲染 vnode 的 parent 为父 vnode
     vnode.parent = _parentVnode
     return vnode
   }

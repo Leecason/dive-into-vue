@@ -190,7 +190,7 @@ export function mountComponent (
   } else {
     // updateComponent 是下方渲染 watcher 的回调函数
     // ！！！渲染的核心！！！
-    // vm._render() 会生成虚拟 Node
+    // vm._render() 的返回值为 vnode，定义在 src/core/instance/render.js
     // vm._update() 会更新 DOM
     updateComponent = () => {
       vm._update(vm._render(), hydrating)

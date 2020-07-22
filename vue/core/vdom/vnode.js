@@ -1,5 +1,7 @@
 /* @flow */
 
+// 虚拟节点：对真实 DOM 节点的一种特殊描述
+// vue 借鉴了开源库 snabbdom
 export default class VNode {
   tag: string | void;
   data: VNodeData | void;

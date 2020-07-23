@@ -195,7 +195,7 @@ function mergeAssets (
   const res = Object.create(parentVal || null)
   if (childVal) {
     process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm)
-    return extend(res, childVal)
+    return extend(res, childVal) // 局部定义的组件 / 指令 / 过滤器可以覆盖全局定义
   } else {
     return res
   }
@@ -457,7 +457,7 @@ export function mergeOptions (
  */
 export function resolveAsset (
   options: Object,
-  type: string,
+  type: string, // ['components', 'directives', 'filters']
   id: string,
   warnMissing?: boolean
 ): any {
@@ -465,15 +465,18 @@ export function resolveAsset (
   if (typeof id !== 'string') {
     return
   }
-  const assets = options[type]
+  const assets = options[type] // 根据 type 拿到 assets
   // check local registration variations first
-  if (hasOwn(assets, id)) return assets[id]
+  // 先检查是否局部注册了对应的资源（从 assets 自身属性上获取）
+  if (hasOwn(assets, id)) return assets[id] // 先通过 id 获取
   const camelizedId = camelize(id)
-  if (hasOwn(assets, camelizedId)) return assets[camelizedId]
+  if (hasOwn(assets, camelizedId)) return assets[camelizedId] // 再将 id 变成驼峰形式获取
   const PascalCaseId = capitalize(camelizedId)
-  if (hasOwn(assets, PascalCaseId)) return assets[PascalCaseId]
+  if (hasOwn(assets, PascalCaseId)) return assets[PascalCaseId] // 再将驼峰形式的首字母大写去获取
   // fallback to prototype chain
+  // 局部获取不到，则从 assets 原型链上获取
   const res = assets[id] || assets[camelizedId] || assets[PascalCaseId]
+  // 原型链上也没有，则报警告
   if (process.env.NODE_ENV !== 'production' && warnMissing && !res) {
     warn(
       'Failed to resolve ' + type.slice(0, -1) + ': ' + id,

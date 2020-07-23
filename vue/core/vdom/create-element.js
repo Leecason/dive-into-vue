@@ -119,7 +119,8 @@ export function _createElement (
         config.parsePlatformTagName(tag), data, children,
         undefined, undefined, context
       )
-    // 如果为已经注册的组件，则创建组件 vnode
+    // 通过 resolveAsset 拿到组件构造函数，如果拿到了，表明是已经注册的组件，创建组件类型的 vnode
+    // resolveAsset 定义在 src/core/util/options.js
     } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
       // component
       vnode = createComponent(Ctor, data, context, children, tag)

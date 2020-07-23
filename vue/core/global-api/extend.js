@@ -19,7 +19,7 @@ export function initExtend (Vue: GlobalAPI) {
    * 利用 JS 原型继承实现
    */
   Vue.extend = function (extendOptions: Object): Function {
-    extendOptions = extendOptions || {}
+    extendOptions = extendOptions || {} // 定义的组件对象
     const Super = this
     const SuperId = Super.cid
     const cachedCtors = extendOptions._Ctor || (extendOptions._Ctor = {})
@@ -38,6 +38,8 @@ export function initExtend (Vue: GlobalAPI) {
     Sub.prototype = Object.create(Super.prototype)
     Sub.prototype.constructor = Sub
     Sub.cid = cid++
+    // 合并 Vue.options（全局配置） 和 extendOptions（组件对象配置）
+    // Vue.options 定义在 src/core/global-api/index.js
     Sub.options = mergeOptions(
       Super.options,
       extendOptions

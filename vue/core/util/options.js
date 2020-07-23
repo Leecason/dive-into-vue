@@ -25,6 +25,7 @@ import {
  * Option overwriting strategies are functions that handle
  * how to merge a parent option value and a child option
  * value into the final value.
+ * 选项合并策略
  */
 const strats = config.optionMergeStrategies
 
@@ -118,6 +119,7 @@ export function mergeDataOrFn (
   }
 }
 
+// data 的选项合并策略
 strats.data = function (
   parentVal: any,
   childVal: any,
@@ -142,6 +144,8 @@ strats.data = function (
 
 /**
  * Hooks and props are merged as arrays.
+ * 生命周期的选项合并策略
+ * 一旦 parent 和 child 都定义了相同的钩子函数，则会把两个钩子函数合并为一个数组，执行顺序为先 parent 后 child
  */
 function mergeHook (
   parentVal: ?Array<Function>,
@@ -179,6 +183,8 @@ LIFECYCLE_HOOKS.forEach(hook => {
  * When a vm is present (instance creation), we need to do
  * a three-way merge between constructor options, instance
  * options and parent options.
+ *
+ * assets（components, directives, filters) 的选项合并策略
  */
 function mergeAssets (
   parentVal: ?Object,
@@ -204,6 +210,8 @@ ASSET_TYPES.forEach(function (type) {
  *
  * Watchers hashes should not overwrite one
  * another, so we merge them as arrays.
+ *
+ * watch 的选项合并策略
  */
 strats.watch = function (
   parentVal: ?Object,
@@ -237,6 +245,8 @@ strats.watch = function (
 
 /**
  * Other object hashes.
+ *
+ * props / methods / inject / computed 的选项合并策略
  */
 strats.props =
 strats.methods =
@@ -260,6 +270,8 @@ strats.provide = mergeDataOrFn
 
 /**
  * Default strategy.
+ *
+ * 默认合并策略，如果 child 定义了则覆盖 parent 的选项，否则使用 parent 选项
  */
 const defaultStrat = function (parentVal: any, childVal: any): any {
   return childVal === undefined
@@ -269,6 +281,8 @@ const defaultStrat = function (parentVal: any, childVal: any): any {
 
 /**
  * Validate component names
+ *
+ * 校验组件名称
  */
 function checkComponents (options: Object) {
   for (const key in options.components) {
@@ -391,7 +405,7 @@ export function mergeOptions (
   vm?: Component
 ): Object {
   if (process.env.NODE_ENV !== 'production') {
-    checkComponents(child)
+    checkComponents(child) // 校验组件名称
   }
 
   if (typeof child === 'function') {
@@ -407,6 +421,7 @@ export function mergeOptions (
   // the result of another mergeOptions call.
   // Only merged options has the _base property.
   if (!child._base) {
+    // 先递归调用 mergeOptions 将 extends 和 mixins 合并到 parent 上
     if (child.extends) {
       parent = mergeOptions(parent, child.extends, vm)
     }
@@ -417,17 +432,18 @@ export function mergeOptions (
     }
   }
 
-  const options = {}
+  const options = {} // 合并后的配置结果
   let key
-  for (key in parent) {
+  for (key in parent) { // 遍历 parent 的选项，使用对应的合并策略写到 options 上
     mergeField(key)
   }
-  for (key in child) {
-    if (!hasOwn(parent, key)) {
+  for (key in child) { // 遍历 child 的选项
+    if (!hasOwn(parent, key)) { // 如果 key 不在 parent 自身属性上，使用合并策略写到 options 上
       mergeField(key)
     }
   }
   function mergeField (key) {
+    // 对于不同的 key 有不同的合并策略，strat 为单词 strategy（策略） 简写
     const strat = strats[key] || defaultStrat
     options[key] = strat(parent[key], child[key], vm, key)
   }

@@ -30,13 +30,20 @@ export function initMixin (Vue: Class<Component>) {
     // 避免 vue 实例被 observe 的标记
     vm._isVue = true
     // merge options
-    // 合并配置
-    if (options && options._isComponent) { // 当前实例为组件
+    // 合并配置，不同场景合并配置的逻辑不一样，传入的 options 也大不相同
+    if (options && options._isComponent) { // 当前实例为子组件，则执行子组件的选项合并
+      // 在执行 Vue.extend 构造子组件构造函数时，会调用 mergeOptions 方法
+      // 见 src/core/global-api/extend.js
+
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
-      initInternalComponent(vm, options)
-    } else {
+      initInternalComponent(vm, options) // 因为不涉及递归操作，比 else 分支中外部调用场景的 mergeOptions 的过程要快
+    } else { // 外部调用场景，通常为 new Vue() 时
+      // 将 resolveConstructorOptions 返回的 options 和传入的 options 做合并，
+      // 普通场景下该函数返回 vm.constructor.options 即 Vue.options
+      // Vue.options 定义在 src/core/global-api/index.js
+      // mergeOptions 定义在 src/core/util/options.js
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
@@ -86,17 +93,19 @@ export function initMixin (Vue: Class<Component>) {
   }
 }
 
-// 将内部创建子组件时所传的参数合并到子组件 vm.$options 上
+// 将创建子组件时的一些参数合并到 vm.$options 上
 export function initInternalComponent (vm: Component, options: InternalComponentOptions) {
+  // 相当于 vm.$options = Object.create(Sub.options)
   const opts = vm.$options = Object.create(vm.constructor.options)
   // doing this because it's faster than dynamic enumeration.
-  const parentVnode = options._parentVnode
-  opts.parent = options.parent
+  const parentVnode = options._parentVnode // 子组件的父 vnode
+  opts.parent = options.parent // 子组件的父 vue 实例
   opts._parentVnode = parentVnode
 
+  // 获取到父组件的一些配置
   const vnodeComponentOptions = parentVnode.componentOptions
-  opts.propsData = vnodeComponentOptions.propsData
-  opts._parentListeners = vnodeComponentOptions.listeners
+  opts.propsData = vnodeComponentOptions.propsData // 传给子组件的 props
+  opts._parentListeners = vnodeComponentOptions.listeners // 监听子组件的自定义事件
   opts._renderChildren = vnodeComponentOptions.children
   opts._componentTag = vnodeComponentOptions.tag
 

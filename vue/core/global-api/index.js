@@ -53,14 +53,18 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   }
 
   Vue.options = Object.create(null)
+  // ASSET_TYPES 为 ['component', 'directive', 'filter']
   ASSET_TYPES.forEach(type => {
     Vue.options[type + 's'] = Object.create(null)
   })
 
   // this is used to identify the "base" constructor to extend all plain-object
   // components with in Weex's multi-instance scenarios.
+  // 创建子组件时使用，获取到 Vue 调用 Vue.extend 生成子组件构造函数
   Vue.options._base = Vue
 
+  // 将一些内置组件添加到全局（Vue.options.components）上
+  // 如 `<keep-alive>`, `<transition>`, `<transition-group>`，使用时不需要注册
   extend(Vue.options.components, builtInComponents)
 
   initUse(Vue)

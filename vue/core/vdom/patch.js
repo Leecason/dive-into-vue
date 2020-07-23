@@ -824,6 +824,7 @@ export function createPatchFunction (backend) {
       }
     }
 
+    // vnode patch 到 DOM 后执行 insert 钩子
     invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch)
     return vnode.elm
   }

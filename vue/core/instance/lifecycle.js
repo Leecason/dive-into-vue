@@ -124,17 +124,20 @@ export function lifecycleMixin (Vue: Class<Component>) {
     if (vm._isBeingDestroyed) {
       return
     }
-    callHook(vm, 'beforeDestroy')
+    callHook(vm, 'beforeDestroy') // 调用 beforeDestroy 钩子
     vm._isBeingDestroyed = true
     // remove self from parent
+    // 将自身从 parent 的 $children 中移除
     const parent = vm.$parent
     if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
       remove(parent.$children, vm)
     }
     // teardown watchers
+    // 销毁渲染 watcher
     if (vm._watcher) {
       vm._watcher.teardown()
     }
+    // 销毁其它的 watchers
     let i = vm._watchers.length
     while (i--) {
       vm._watchers[i].teardown()
@@ -147,9 +150,12 @@ export function lifecycleMixin (Vue: Class<Component>) {
     // call the last hook...
     vm._isDestroyed = true
     // invoke destroy hooks on current rendered tree
+    // 递归触发子组件的销毁钩子函数
+    // 所以 beforeDestroy 钩子触发顺序为先父后子
+    // destroyed 钩子触发顺序为先子后父
     vm.__patch__(vm._vnode, null)
     // fire destroyed hook
-    callHook(vm, 'destroyed')
+    callHook(vm, 'destroyed') // 调用 destroyed 钩子
     // turn off all instance listeners.
     vm.$off()
     // remove __vue__ reference
@@ -191,7 +197,7 @@ export function mountComponent (
       }
     }
   }
-  callHook(vm, 'beforeMount')
+  callHook(vm, 'beforeMount') // 在挂载 vue 实例之前，调用 beforeMount 钩子
 
   let updateComponent
   /* istanbul ignore if */
@@ -229,9 +235,9 @@ export function mountComponent (
   // 实例一个渲染 watcher，watcher 的回调是上方的 updateComponent
   // 初始化时会执行一次回调，当 vm 实例中侦测的属性发生变化后，会触发 updateComponent 回调函数来完成组件的重新渲染
   new Watcher(vm, updateComponent, noop, {
-    before () {
-      if (vm._isMounted && !vm._isDestroyed) {
-        callHook(vm, 'beforeUpdate')
+    before () { // 在渲染 watcher 回调前调用
+      if (vm._isMounted && !vm._isDestroyed) { // 如果已经挂载，表示这是一次组件更新
+        callHook(vm, 'beforeUpdate') // 调用 beforeUpdate 钩子
       }
     }
   }, true /* isRenderWatcher */) // 标记这个 watcher 实例为渲染 watcher
@@ -241,9 +247,9 @@ export function mountComponent (
   // mounted is called for render-created child components in its inserted hook
   // 如果是根节点，设置 _isMounted 为 true，同时调用 mounted 钩子函数
   // vm.$vnode 表示该实例的父 vnode，为 null 表示该节点为根节点
-  if (vm.$vnode == null) {
-    vm._isMounted = true
-    callHook(vm, 'mounted')
+  if (vm.$vnode == null) { // 没有父 vnode，表示这是一次根节点的挂载过程
+    vm._isMounted = true // 标记为已挂载
+    callHook(vm, 'mounted') // 调用 mounted 钩子
   }
   return vm
 }
@@ -369,6 +375,7 @@ export function deactivateChildComponent (vm: Component, direct?: boolean) {
   }
 }
 
+// 调用生命周期钩子的方法
 export function callHook (vm: Component, hook: string) {
   // #7573 disable dep collection when invoking lifecycle hooks
   pushTarget()
@@ -376,11 +383,11 @@ export function callHook (vm: Component, hook: string) {
   const info = `${hook} hook`
   if (handlers) {
     for (let i = 0, j = handlers.length; i < j; i++) {
-      invokeWithErrorHandling(handlers[i], vm, null, vm, info)
+      invokeWithErrorHandling(handlers[i], vm /* 作为钩子函数的执行上下文 */, null, vm, info)
     }
   }
   if (vm._hasHookEvent) {
-    vm.$emit('hook:' + hook)
+    vm.$emit('hook:' + hook) // 在父组件可以监听子组件的生命周期钩子，例如 @hook:created
   }
   popTarget()
 }

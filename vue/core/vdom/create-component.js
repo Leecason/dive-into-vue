@@ -67,11 +67,12 @@ const componentVNodeHooks = {
     )
   },
 
+  // patch vnode 到 DOM 后在 invokeInsertHook 方法中调用
   insert (vnode: MountedComponentVNode) {
     const { context, componentInstance } = vnode
     if (!componentInstance._isMounted) {
       componentInstance._isMounted = true
-      callHook(componentInstance, 'mounted')
+      callHook(componentInstance, 'mounted') // 调用子组件实例 mounted 钩子，执行顺序为先子后父
     }
     if (vnode.data.keepAlive) {
       if (context._isMounted) {

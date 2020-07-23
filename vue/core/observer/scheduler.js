@@ -132,7 +132,8 @@ function callUpdatedHooks (queue) {
   while (i--) {
     const watcher = queue[i]
     const vm = watcher.vm
-    if (vm._watcher === watcher && vm._isMounted && !vm._isDestroyed) {
+    // 只有 watcher 为渲染 watcher 且该实例已经挂载了才会调用 updated 钩子
+    if (vm._watcher /* 渲染 watcher */ === watcher && vm._isMounted && !vm._isDestroyed) {
       callHook(vm, 'updated')
     }
   }

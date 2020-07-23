@@ -133,15 +133,26 @@ export function createComponent (
     return
   }
 
+  // 组件的定义有时并不是一个普通的对象，比如异步组件，可能是一个函数，如
+  // Vue.component('async-example', function (resolve, reject) {
+  //   require(['./my-async-component'], resolve)
+  // })
+
   // async component
+  // 异步组件创建组件 vnode
   let asyncFactory
   if (isUndef(Ctor.cid)) {
     asyncFactory = Ctor
     Ctor = resolveAsyncComponent(asyncFactory, baseCtor)
+    // 首次执行时，异步组件还没加载回来，组件构造函数 Ctor 为 undefined，则创建一个注释节点作为异步组件占位符 vnode
+    // 除非使用高阶异步组件设置了 0 delay 并返回了 loading 组件，则会渲染 loading 组件
+    // 组件加载回来后会触发重新渲染（在 resolveAsyncComponent 中使用了 forceRender 强制重新渲染）
+    // 再次进入 resolveAsyncComponent，此时会根据不同的情况（成功/失败等），返回不同的组件给 Ctor，此时就会进入正常组件的渲染和 patch 过程
     if (Ctor === undefined) {
       // return a placeholder node for async component, which is rendered
       // as a comment node but preserves all the raw information for the node.
       // the information will be used for async server-rendering and hydration.
+      // 定义在 src/core/vdom/helpers/resolve-async-component.js
       return createAsyncPlaceholder(
         asyncFactory,
         data,

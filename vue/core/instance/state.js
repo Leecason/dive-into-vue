@@ -35,6 +35,8 @@ const sharedPropertyDefinition = {
   set: noop
 }
 
+// 代理，把对 target[sourceKey][key] 的读写 -> 对 vm[key] 的读写
+// 例如：「props」，把对 vm._props.xxx 的读写 -> 对 vm.xxx 的读写，所以 vm.xxx 可以访问到 props 中属性
 export function proxy (target: Object, sourceKey: string, key: string) {
   sharedPropertyDefinition.get = function proxyGetter () {
     return this[sourceKey][key]
@@ -48,30 +50,32 @@ export function proxy (target: Object, sourceKey: string, key: string) {
 export function initState (vm: Component) {
   vm._watchers = []
   const opts = vm.$options
-  if (opts.props) initProps(vm, opts.props)
-  if (opts.methods) initMethods(vm, opts.methods)
-  if (opts.data) {
+  if (opts.props) initProps(vm, opts.props) // 初始化 props
+  if (opts.methods) initMethods(vm, opts.methods) // 初始化 methods
+  if (opts.data) { // 初始化 data
     initData(vm)
   } else {
     observe(vm._data = {}, true /* asRootData */)
   }
-  if (opts.computed) initComputed(vm, opts.computed)
-  if (opts.watch && opts.watch !== nativeWatch) {
+  if (opts.computed) initComputed(vm, opts.computed) // 初始化 computed
+  if (opts.watch && opts.watch !== nativeWatch) { // 初始化 watch
     initWatch(vm, opts.watch)
   }
 }
 
+// 初始化 props
 function initProps (vm: Component, propsOptions: Object) {
   const propsData = vm.$options.propsData || {}
-  const props = vm._props = {}
+  const props = vm._props = {} // 在 vm._props 中存储 props
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
   const keys = vm.$options._propKeys = []
-  const isRoot = !vm.$parent
+  const isRoot = !vm.$parent // 是否是根 vue 实例
   // root instance props should be converted
   if (!isRoot) {
     toggleObserving(false)
   }
+  // 遍历 props
   for (const key in propsOptions) {
     keys.push(key)
     const value = validateProp(key, propsOptions, propsData, vm)
@@ -97,11 +101,14 @@ function initProps (vm: Component, propsOptions: Object) {
         }
       })
     } else {
+      // 把每个 props 变成响应式
       defineReactive(props, key, value)
     }
     // static props are already proxied on the component's prototype
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
+
+    // 将 vm._props.xxx 的属性代理到 vue 实例上，使得通过 vm.xxx 可以访问到 props
     if (!(key in vm)) {
       proxy(vm, `_props`, key)
     }
@@ -109,9 +116,11 @@ function initProps (vm: Component, propsOptions: Object) {
   toggleObserving(true)
 }
 
+// 初始化 data
 function initData (vm: Component) {
-  let data = vm.$options.data
-  data = vm._data = typeof data === 'function'
+  let data = vm.$options.data // 获取组件对象上定义的 data
+  // 在 vm._data 中存储 data
+  data = vm._data = typeof data === 'function' // 如果 data 是个工厂函数，则将它的返回值作为 data
     ? getData(data, vm)
     : data || {}
   if (!isPlainObject(data)) {
@@ -124,6 +133,7 @@ function initData (vm: Component) {
   }
   // proxy data on instance
   const keys = Object.keys(data)
+  // 校验 data 中的属性是否在 props 或者 methods 上有同名的定义
   const props = vm.$options.props
   const methods = vm.$options.methods
   let i = keys.length
@@ -143,11 +153,12 @@ function initData (vm: Component) {
         `Use prop default value instead.`,
         vm
       )
-    } else if (!isReserved(key)) {
+    } else if (!isReserved(key)) { // 将 vm._data.xxx 的属性代理到 vue 实例上，使得通过 vm.xxx 可以访问到 data
       proxy(vm, `_data`, key)
     }
   }
   // observe data
+  // 将 data 变为响应式
   observe(data, true /* asRootData */)
 }
 

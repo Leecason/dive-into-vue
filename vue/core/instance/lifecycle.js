@@ -221,7 +221,8 @@ export function mountComponent (
   } else {
     // updateComponent 是下方渲染 watcher 的回调函数
     // ！！！渲染的核心！！！
-    // vm._render() 的返回值为 vnode，定义在 src/core/instance/render.js
+    // vm._render() 会创建当前实例的 vnode，过程中会对 vm 上的数据进行访问，触发属性的求值 getter，进行依赖收集
+    // _render 方法定义在 src/core/instance/render.js
     // vm._update() 会将 vnode 转换为真实 DOM，定义在上方 lifecycleMixin 中
     updateComponent = () => {
       vm._update(vm._render(), hydrating)
@@ -234,13 +235,14 @@ export function mountComponent (
   // ！！！核心代码！！！
   // 实例一个渲染 watcher，watcher 的回调是上方的 updateComponent
   // 初始化时会执行一次回调，当 vm 实例中侦测的属性发生变化后，会触发 updateComponent 回调函数来完成组件的重新渲染
+  // 实例时会进入 watcher 的 this.get() 方法，调用 updateComponent，收集渲染的依赖，见 src/core/observer/watcher.js
   new Watcher(vm, updateComponent, noop, {
     before () { // 在渲染 watcher 回调前调用
       if (vm._isMounted && !vm._isDestroyed) { // 如果已经挂载，表示这是一次组件更新
         callHook(vm, 'beforeUpdate') // 调用 beforeUpdate 钩子
       }
     }
-  }, true /* isRenderWatcher */) // 标记这个 watcher 实例为渲染 watcher
+  }, true /* isRenderWatcher */) // 标记这个 watcher 为渲染 watcher
   hydrating = false
 
   // manually mounted instance, call mounted on self

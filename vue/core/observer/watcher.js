@@ -68,6 +68,8 @@ export default class Watcher {
     this.id = ++uid // uid for batching
     this.active = true
     this.dirty = this.lazy // for lazy watchers
+
+    // 和 dep 有关的属性
     this.deps = []
     this.newDeps = []
     this.depIds = new Set()
@@ -97,12 +99,20 @@ export default class Watcher {
 
   /**
    * Evaluate the getter, and re-collect dependencies.
+   *
+   * 获得 getter 的值并且重新进行依赖收集
    */
   get () {
+    // 将自身观察者设置为 Dep.target，用于依赖收集，定义在 src/core/observer/dep.js
     pushTarget(this)
     let value
     const vm = this.vm
+
+    // 执行 getter 操作，进行依赖收集
+    // 在 getter 操作中需要对属性进行求值操作，此时的求值会触发属性的 getter
+    // 将该观察者对象放入对应属性 Dep 的 subs（订阅者）中去
     try {
+      // 渲染 watcher 的 getter 为 updateComponent，作用是生成 vnode 并 patch 到真实 DOM，定义在 src/core/instance/lifecycle.js
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
@@ -114,10 +124,10 @@ export default class Watcher {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
       if (this.deep) {
-        traverse(value)
+        traverse(value) // 递归访问 value，触发所有子项的 getter
       }
-      popTarget()
-      this.cleanupDeps()
+      popTarget() // 将 Dep.target 恢复成上一个 watcher（当前 watcher 出栈），定义在 src/core/observer/dep.js
+      this.cleanupDeps() // 清理依赖收集，移除不必要的依赖
     }
     return value
   }
@@ -127,10 +137,13 @@ export default class Watcher {
    */
   addDep (dep: Dep) {
     const id = dep.id
+    // 防止 dep 被多次重复添加
     if (!this.newDepIds.has(id)) {
       this.newDepIds.add(id)
       this.newDeps.push(dep)
       if (!this.depIds.has(id)) {
+        // 将自身 watcher 添加到 dep（依赖）的 subs（订阅者）中
+        // 当 watcher 的依赖发生改变，会通知该依赖对应的 dep 中的 subs 进行派发更新
         dep.addSub(this)
       }
     }
@@ -138,9 +151,21 @@ export default class Watcher {
 
   /**
    * Clean up for dependency collection.
+   *
+   * 清理依赖收集
+   * vue 为数据驱动的，对于渲染 watcher，由于每次数据变化都会重新渲染，会再次触发依赖收集
+   * watcher 有两个属性
+   *   1. newDeps：新添加的依赖
+   *   2. deps：上一次添加的依赖
+   * 在 cleanupDeps 时会移除上一次依赖对自身订阅，将 newDeps 作为自己最新的依赖
+   * 原因是：
+   *   如果此时有一个 v-if 控制了渲染模板 a 和 b
+   *   模板 a 渲染时对 x 有依赖，x 变化时应该通知视图变化，所以将 x 作为了依赖收集了起来
+   *   一旦改变了 v-if 条件渲染了模板 b，此时视图不依赖 x 了，所以 x 改变时视图不需要更新，所以应该将对 x 的依赖去除
    */
   cleanupDeps () {
     let i = this.deps.length
+    // 移除自身对上一次所有依赖的订阅
     while (i--) {
       const dep = this.deps[i]
       if (!this.newDepIds.has(dep.id)) {

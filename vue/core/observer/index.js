@@ -46,7 +46,7 @@ export class Observer {
 
   constructor (value: any) {
     this.value = value
-    this.dep = new Dep() // 存储订阅该 value 的监听者（watcher）
+    this.dep = new Dep() // 存储订阅该 value 的订阅者（watcher）
     this.vmCount = 0
     def(value, '__ob__', this) // 使得通过 value.__ob__ 可以访问到该 observer 实例
     if (Array.isArray(value)) {
@@ -154,7 +154,7 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
-  const dep = new Dep() // 存储订阅该属性的监听者（watcher）
+  const dep = new Dep() // 存储订阅该属性的订阅者（watcher）
 
   // 获取该属性的属性描述符
   const property = Object.getOwnPropertyDescriptor(obj, key)
@@ -178,8 +178,8 @@ export function defineReactive (
     configurable: true,
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
-      if (Dep.target) {
-        dep.depend()
+      if (Dep.target) { // 当前全局正在收集依赖的 watcher
+        dep.depend() // 依赖收集，将 watcher 添加进该属性的订阅者中
         if (childOb) {
           childOb.dep.depend()
           if (Array.isArray(value)) {

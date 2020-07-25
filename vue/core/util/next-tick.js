@@ -10,6 +10,7 @@ export let isUsingMicroTask = false
 const callbacks = []
 let pending = false
 
+// 遍历 callbacks 执行回调
 function flushCallbacks () {
   pending = false
   const copies = callbacks.slice(0)
@@ -30,7 +31,7 @@ function flushCallbacks () {
 // where microtasks have too high a priority and fire in between supposedly
 // sequential events (e.g. #4521, #6690, which have workarounds)
 // or even between bubbling of the same event (#6566).
-let timerFunc
+let timerFunc // 根据当前环境，对应不同的 timerFunc
 
 // The nextTick behavior leverages the microtask queue, which can be accessed
 // via either native Promise.then or MutationObserver.
@@ -39,6 +40,8 @@ let timerFunc
 // completely stops working after triggering a few times... so, if native
 // Promise is available, we will use it:
 /* istanbul ignore next, $flow-disable-line */
+
+// 优先使用 Promise，属于微任务（microtask）
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
   const p = Promise.resolve()
   timerFunc = () => {
@@ -51,6 +54,8 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
     if (isIOS) setTimeout(noop)
   }
   isUsingMicroTask = true
+
+  // 降级判断是否支持原生 MutationObserver，属于微任务（microtask）
 } else if (!isIE && typeof MutationObserver !== 'undefined' && (
   isNative(MutationObserver) ||
   // PhantomJS and iOS 7.x
@@ -70,6 +75,8 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
     textNode.data = String(counter)
   }
   isUsingMicroTask = true
+
+  // 是否支持 setImmediate，高版本 IE 和 Edge 才支持的特性，属于宏任务（marcotask）
 } else if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
   // Fallback to setImmediate.
   // Technically it leverages the (macro) task queue,
@@ -77,6 +84,8 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
   timerFunc = () => {
     setImmediate(flushCallbacks)
   }
+
+  // 降级为 setTimeout，属于宏任务（marcotask）
 } else {
   // Fallback to setTimeout.
   timerFunc = () => {
@@ -84,6 +93,15 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
   }
 }
 
+// 什么是 tick ？ JS 的 event loop 执行时会区分宏任务和微任务，一次宏任务执行完毕
+// 从任务队列中取下一个宏任务来执行前，会执行完所有的微任务，在每个宏任务执行完毕后，视图会更新
+// 所以在微任务的执行时就能拿到最新的视图了，比微任务晚一点，下一个宏任务中也能拿到最新的视图
+// 在一个宏任务开始执行时，直到任务执行完视图更新后，就是一个 tick
+
+// nextTick 将传入的回调压入 callbacks 数组
+// 在下一个 tick 调用 timerFunc（会根据 API 支持情况进行赋值）执行 flushCallbacks 来执行并清空所有回调
+// cb 压入 callbacks 而不是直接执行的原因是保证同一个 tick 内多次调用 nextTick 不会开启多个异步任务
+// 而是合并为一个任务，在下一个 tick 时统一执行
 export function nextTick (cb?: Function, ctx?: Object) {
   let _resolve
   callbacks.push(() => {
@@ -102,6 +120,7 @@ export function nextTick (cb?: Function, ctx?: Object) {
     timerFunc()
   }
   // $flow-disable-line
+  // 在不传入 cb 时，会返回一个 promise 供链式调用，nextTick().then(() => { ... })
   if (!cb && typeof Promise !== 'undefined') {
     return new Promise(resolve => {
       _resolve = resolve

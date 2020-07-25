@@ -42,6 +42,7 @@ export function initGlobalAPI (Vue: GlobalAPI) {
     defineReactive
   }
 
+  // 向响应式对象上添加一个属性，使这个新属性为响应式，并且触发视图更新
   Vue.set = set
   Vue.delete = del
   Vue.nextTick = nextTick

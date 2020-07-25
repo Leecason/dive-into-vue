@@ -20,25 +20,27 @@ export default class Dep {
 
   constructor () {
     this.id = uid++
-    this.subs = [] // 存储订阅者（watcher）的数组
+    this.subs = [] // 存储观察者（watcher）的数组
   }
 
+  // 添加一个观察者
   addSub (sub: Watcher) {
     this.subs.push(sub)
   }
 
+  // 移除一个观察者
   removeSub (sub: Watcher) {
     remove(this.subs, sub)
   }
 
+  // 依赖收集，当存在 Dep.target 时添加观察者
   depend () {
     if (Dep.target) { // Dep.target 是全局唯一 watcher
-      // 这里相当调用 watcher 实例的 addDep 方法，将该 watcher 添加进该依赖的订阅者中
-      // 定义在 src/core/observer/watcher.js
       Dep.target.addDep(this)
     }
   }
 
+  // 通知所有的订阅者，进行派发更新
   notify () {
     // stabilize the subscriber list first
     const subs = this.subs.slice()
@@ -48,6 +50,7 @@ export default class Dep {
       // order
       subs.sort((a, b) => a.id - b.id)
     }
+    // 调用每一个观察者的 update 方法
     for (let i = 0, l = subs.length; i < l; i++) {
       subs[i].update()
     }

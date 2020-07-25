@@ -206,8 +206,8 @@ export function defineReactive (
       } else {
         val = newVal
       }
-      childOb = !shallow && observe(newVal)
-      dep.notify()
+      childOb = !shallow && observe(newVal) // 如果 shallow 为 false 将会把新值变成为响应式对象
+      dep.notify() // 通知所有订阅者，是 dep 的实例方法，定义在 src/core/observer/dep.js
     }
   })
 }

@@ -185,14 +185,19 @@ export default class Watcher {
   /**
    * Subscriber interface.
    * Will be called when a dependency changes.
+   *
+   * 调度者接口，当依赖改变时进行回调
    */
   update () {
     /* istanbul ignore else */
-    if (this.lazy) {
+    if (this.lazy) { // 计算属性
       this.dirty = true
     } else if (this.sync) {
       this.run()
     } else {
+      // ！！！重要！！！
+      // Vue 的一个优化点，派发更新时不会直接触发 watcher 回调，而是将 watcher 添加到队列中，在 nextTick 后（异步）触发 watcher 的回调
+      // 定义在 src/core/observer/scheduler.js
       queueWatcher(this)
     }
   }
@@ -200,21 +205,31 @@ export default class Watcher {
   /**
    * Scheduler job interface.
    * Will be called by the scheduler.
+   *
+   * 调度者工作接口，将被调度者调用
+   *
    */
   run () {
     if (this.active) {
+      // get 操作在获取 value 时，本身也会执行 getter
+      // 对于渲染 watcher，将会调用 updateComponent，触发重新渲染，重新执行 patch 过程，定义在 src/core/instance/lifecycle.js
       const value = this.get()
       if (
         value !== this.value ||
         // Deep watchers and watchers on Object/Arrays should fire even
         // when the value is the same, because the value may
         // have mutated.
+
+         // 即使新旧值相等，但值是对象类型或 deep watcher，也应该执行 watcher 回调
         isObject(value) ||
         this.deep
       ) {
         // set new value
         const oldValue = this.value
+        // 设置新的值
         this.value = value
+
+        // 触发回调，将新值 value 和旧值 oldValue 传入回调，所以在回调函数参数中能拿到新旧值
         if (this.user) {
           try {
             this.cb.call(this.vm, value, oldValue)

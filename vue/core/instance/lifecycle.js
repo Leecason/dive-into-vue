@@ -256,10 +256,11 @@ export function mountComponent (
   return vm
 }
 
+// 更新子组件的 props, listener
 export function updateChildComponent (
-  vm: Component,
-  propsData: ?Object,
-  listeners: ?Object,
+  vm: Component, // 子组件实例
+  propsData: ?Object, // 父组件传递的 props
+  listeners: ?Object, // 父组件传递的自定义事件
   parentVnode: MountedComponentVNode,
   renderChildren: ?Array<VNode>
 ) {
@@ -305,13 +306,16 @@ export function updateChildComponent (
   vm.$listeners = listeners || emptyObject
 
   // update props
+  // 更新 props
   if (propsData && vm.$options.props) {
-    toggleObserving(false)
-    const props = vm._props
-    const propKeys = vm.$options._propKeys || []
+    toggleObserving(false) // 与 initProps 逻辑一致，不需要对引用类型的 props 做递归响应式处理
+    const props = vm._props // 存储子组件 props 的对象
+    const propKeys = vm.$options._propKeys || [] // 缓存的子组件所有 props 的键
     for (let i = 0; i < propKeys.length; i++) {
       const key = propKeys[i]
       const propOptions: any = vm.$options.props // wtf flow?
+      // 重新校验 prop 和计算 prop 的值，更新子组件的 props
+      // 赋值时会触发 prop 的 setter，如果有观察者，将会触发观察者的回调（包括重新渲染）
       props[key] = validateProp(key, propOptions, propsData, vm)
     }
     toggleObserving(true)

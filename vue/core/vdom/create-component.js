@@ -176,6 +176,7 @@ export function createComponent (
   }
 
   // extract props
+  // 从 vnode data 中提取 props
   const propsData = extractPropsFromVNodeData(data, Ctor, tag)
 
   // functional component
@@ -211,7 +212,7 @@ export function createComponent (
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
     data, undefined /* 组件 VNode 是没有 children 的 */, undefined, undefined, context,
-    { Ctor, propsData, listeners, tag, children },
+    { Ctor, propsData, listeners, tag, children }, /* componentOptions */
     asyncFactory
   )
 

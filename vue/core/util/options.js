@@ -308,32 +308,34 @@ export function validateComponentName (name: string) {
 /**
  * Ensure all props option syntax are normalized into the
  * Object-based format.
+ *
+ * 将所有 props 都转换为对象格式
  */
 function normalizeProps (options: Object, vm: ?Component) {
   const props = options.props
   if (!props) return
   const res = {}
   let i, val, name
-  if (Array.isArray(props)) {
+  if (Array.isArray(props)) { // 当 props 是数组, 例如 props: ['foo', 'bar']
     i = props.length
     while (i--) {
       val = props[i]
-      if (typeof val === 'string') {
-        name = camelize(val)
-        res[name] = { type: null }
+      if (typeof val === 'string') { // 数组里面每个成员只能是 string，表示 prop 的名称
+        name = camelize(val) // 转化成驼峰形式
+        res[name] = { type: null } // 不设置 type 类型
       } else if (process.env.NODE_ENV !== 'production') {
         warn('props must be strings when using array syntax.')
       }
     }
-  } else if (isPlainObject(props)) {
-    for (const key in props) {
+  } else if (isPlainObject(props)) { // 当 props 是纯对象
+    for (const key in props) { // 遍历 props
       val = props[key]
-      name = camelize(key)
-      res[name] = isPlainObject(val)
-        ? val
-        : { type: val }
+      name = camelize(key) // 转化成驼峰形式
+      res[name] = isPlainObject(val) // 对单个 prop 的定义是纯对象
+        ? val // 例如：foo: { type: String }
+        : { type: val } // 例如：foo: String
     }
-  } else if (process.env.NODE_ENV !== 'production') {
+  } else if (process.env.NODE_ENV !== 'production') { // props 既不是对象也不是数组，抛出警告
     warn(
       `Invalid value for option "props": expected an Array or an Object, ` +
       `but got ${toRawType(props)}.`,
@@ -398,6 +400,8 @@ function assertObjectType (name: string, value: any, vm: ?Component) {
 /**
  * Merge two option objects into a new one.
  * Core utility used in both instantiation and inheritance.
+ *
+ * 处理自定义组件对象的 option，挂载到组件实例的 $options
  */
 export function mergeOptions (
   parent: Object,
@@ -412,7 +416,7 @@ export function mergeOptions (
     child = child.options
   }
 
-  normalizeProps(child, vm)
+  normalizeProps(child, vm) // 规范 props，将每个 prop 的定义都转换为对象形式
   normalizeInject(child, vm)
   normalizeDirectives(child)
 

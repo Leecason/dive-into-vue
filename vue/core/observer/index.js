@@ -21,6 +21,8 @@ const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
 /**
  * In some cases we may want to disable observation inside a component's
  * update computation.
+ *
+ * 用来控制是否需要 observe
  */
 export let shouldObserve: boolean = true
 
@@ -205,6 +207,8 @@ export function defineReactive (
         return
       }
       /* eslint-enable no-self-compare */
+      // 开发环境下如果有自定义 setter，则执行自定义的 setter
+      // 例如给了 prop 一段自定义 setter，如果对 prop 赋值会执行这段 setter 抛出警告
       if (process.env.NODE_ENV !== 'production' && customSetter) {
         customSetter()
       }

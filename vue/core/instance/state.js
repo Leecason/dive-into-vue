@@ -66,23 +66,28 @@ export function initState (vm: Component) {
 }
 
 // 初始化 props
-function initProps (vm: Component, propsOptions: Object) {
-  const propsData = vm.$options.propsData || {}
+function initProps (vm: Component, propsOptions: Object /* 已经被规范的 props */) {
+  const propsData = vm.$options.propsData || {} // 父元素传递过来的 props 数据
   const props = vm._props = {} // 在 vm._props 中存储 props
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
-  const keys = vm.$options._propKeys = []
+  const keys = vm.$options._propKeys = [] // 缓存的实例所有 props 的键
   const isRoot = !vm.$parent // 是否是根 vue 实例
   // root instance props should be converted
-  if (!isRoot) {
+  if (!isRoot) { // 不是根实例
+    // 接下来要将 props 变为响应式，但是对于引用类型 prop
+    // 执行 toggleObserving(false) 将不再递归调用 observe
+    // 因为子组件的 prop 值始终指向父组件的 prop 值，所以父组件 prop 值变化会触发子组件的更新
+    // 所以对于引用类型 prop 的递归 observe 过程可以省略
     toggleObserving(false)
   }
   // 遍历 props
   for (const key in propsOptions) {
     keys.push(key)
+    // 校验 props
     const value = validateProp(key, propsOptions, propsData, vm)
     /* istanbul ignore else */
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== 'production') { // 校验 prop 是否为 html 保留属性
       const hyphenatedKey = hyphenate(key)
       if (isReservedAttribute(hyphenatedKey) ||
           config.isReservedAttr(hyphenatedKey)) {
@@ -91,6 +96,7 @@ function initProps (vm: Component, propsOptions: Object) {
           vm
         )
       }
+      // 开发环境会对 prop 有一段自定义的 setter，直接对 prop 赋值时会抛出警告
       defineReactive(props, key, value, () => {
         if (!isRoot && !isUpdatingChildComponent) {
           warn(
@@ -110,7 +116,9 @@ function initProps (vm: Component, propsOptions: Object) {
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
 
+    // 代理 props
     // 将 vm._props.xxx 的属性代理到 vue 实例上，使得通过 vm.xxx 可以访问到 props
+    // 对非根实例的子组件而言，代理发生在 Vue.extend，src/core/global-api/extend.js
     if (!(key in vm)) {
       proxy(vm, `_props`, key)
     }

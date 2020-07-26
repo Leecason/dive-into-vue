@@ -58,7 +58,9 @@ export function initState (vm: Component) {
     observe(vm._data = {}, true /* asRootData */)
   }
   if (opts.computed) initComputed(vm, opts.computed) // 初始化 computed
-  if (opts.watch && opts.watch !== nativeWatch) { // 初始化 watch
+  // 初始化 watch
+  // Firefox 的 Object 原型上有一个 watch 方法，这里叫 nativeWatch，定义在 src/core/util/env.js
+  if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch)
   }
 }
@@ -322,9 +324,12 @@ function initMethods (vm: Component, methods: Object) {
   }
 }
 
+// 初始化 watch
 function initWatch (vm: Component, watch: Object) {
+  // 遍历 watch
   for (const key in watch) {
     const handler = watch[key]
+    // 支持同一个 key 有多个 watch handler
     if (Array.isArray(handler)) {
       for (let i = 0; i < handler.length; i++) {
         createWatcher(vm, key, handler[i])
@@ -335,19 +340,29 @@ function initWatch (vm: Component, watch: Object) {
   }
 }
 
+// 创建观察者 watcher
 function createWatcher (
-  vm: Component,
-  expOrFn: string | Function,
-  handler: any,
-  options?: Object
+  vm: Component, // vue 实例
+  expOrFn: string | Function, // 被侦听的表达式
+  handler: any, // watch 回调
+  options?: Object // watch 选项
 ) {
+  // 如果 handler 是纯对象
+  // watch: {
+  //   test: {
+  //     handler: function () {},
+  //     deep: true
+  //    }
+  //  }
   if (isPlainObject(handler)) {
     options = handler
     handler = handler.handler
   }
-  if (typeof handler === 'string') {
+  if (typeof handler === 'string') { // 也可以直接使用 methods 中的方法
     handler = vm[handler]
   }
+  // 否则 handler 为函数
+  // 使用 $watch 来创建一个 watcher 来观察该对象的变化
   return vm.$watch(expOrFn, handler, options)
 }
 
@@ -377,18 +392,21 @@ export function stateMixin (Vue: Class<Component>) {
   Vue.prototype.$set = set
   Vue.prototype.$delete = del
 
+  // $watch方法，用来为对象建立观察者监听变化
   Vue.prototype.$watch = function (
     expOrFn: string | Function,
     cb: any,
     options?: Object
   ): Function {
     const vm: Component = this
+    // 判断 cb 如果为纯对象，则调用 createWatcher，因为 $watch 可能被外部直接调用
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)
     }
-    options = options || {}
-    options.user = true
-    const watcher = new Watcher(vm, expOrFn, cb, options)
+    options = options || {} // watcher 选项
+    options.user = true // 表示用户自定义的观察者
+    const watcher = new Watcher(vm, expOrFn, cb, options) // 实例 watcher
+    // 有 immediate 参数会直接执行
     if (options.immediate) {
       try {
         cb.call(vm, watcher.value)
@@ -396,8 +414,9 @@ export function stateMixin (Vue: Class<Component>) {
         handleError(error, vm, `callback for immediate watcher "${watcher.expression}"`)
       }
     }
+    // 返回一个 unwatch 的函数来取消观察，用来停止触发回调
     return function unwatchFn () {
-      watcher.teardown()
+      watcher.teardown() // 将自身从所有依赖收集订阅列表删除
     }
   }
 }

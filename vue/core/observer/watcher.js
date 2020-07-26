@@ -59,9 +59,11 @@ export default class Watcher {
     vm._watchers.push(this)
     // options
     if (options) {
-      this.deep = !!options.deep
-      this.user = !!options.user
+      this.deep = !!options.deep // 深度观察
+      this.user = !!options.user // 用户自定义 watcher 标志位
       this.lazy = !!options.lazy // 计算属性 watcher
+      // 同步触发回调的 watcher，默认 watcher 回调会被推入一个队列，在 nextTick 后真正执行
+      // sync watcher 的回调不会被推入队列，而是在当前 tick 中同步执行
       this.sync = !!options.sync
       this.before = options.before
     } else {
@@ -123,7 +125,7 @@ export default class Watcher {
       // 2. 计算属性 watcher 在执行 getter 求值时会触发其中响应式属性的 getter，该计算属性 watcher 则会作为该属性的订阅者被 dep 收集
       value = this.getter.call(vm, vm)
     } catch (e) {
-      if (this.user) {
+      if (this.user) { // 如果是用户自定义的 watcher，在对被观察的对象求值时的错误会暴露给用户
         handleError(e, vm, `getter for watcher "${this.expression}"`)
       } else {
         throw e
@@ -131,8 +133,8 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
-      if (this.deep) {
-        traverse(value) // 递归访问 value，触发所有子项的 getter
+      if (this.deep) { // 深度观察的 watcher
+        traverse(value) // 递归访问 value，触发所有子项的 getter，有一定的性能开销
       }
       popTarget() // 将 Dep.target 恢复成上一个 watcher（当前 watcher 出栈），定义在 src/core/observer/dep.js
       this.cleanupDeps() // 清理依赖收集，移除不必要的依赖
@@ -200,8 +202,8 @@ export default class Watcher {
     /* istanbul ignore else */
     if (this.lazy) { // 计算属性
       this.dirty = true // 脏检查标记设为 true，下次对该计算属性求值时会重新计算
-    } else if (this.sync) {
-      this.run()
+    } else if (this.sync) { // 同步执行回调的 watcher
+      this.run() // 不会被推入一个回调队列，在 nextTick 后执行，而是在当前 tick 中同步执行
     } else {
       // ！！！重要！！！
       // Vue 的一个优化点，派发更新时不会直接触发 watcher 回调，而是将 watcher 添加到队列中，在 nextTick 后（异步）触发 watcher 的回调
@@ -238,7 +240,7 @@ export default class Watcher {
         this.value = value
 
         // 触发回调，将新值 value 和旧值 oldValue 传入回调，所以在回调函数参数中能拿到新旧值
-        if (this.user) {
+        if (this.user) { // 如果是用户自定义的 watcher，将会捕获执行回调时的报错并暴露给用户
           try {
             this.cb.call(this.vm, value, oldValue)
           } catch (e) {

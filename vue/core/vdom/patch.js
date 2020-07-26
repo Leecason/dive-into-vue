@@ -32,15 +32,26 @@ export const emptyNode = new VNode('', {}, [])
 
 const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
 
+// 判断 a 和 b 是否是相同的 vnode
 function sameVnode (a, b) {
   return (
+    // 需要 key 相同
     a.key === b.key && (
       (
+        // 对于同步组件
+        // 1. 「节点标签」相同
+        // 2. 「是否注释节点」相同
+        // 3. 是否 data 都有定义（当前节点对应的数据对象，包含了具体的一些数据信息， 是一个 VNodeData 类型，可以参考 VNodeData 类型中的数据信息）
+        // 4. 当标签是 input 时，type 必须相同
         a.tag === b.tag &&
         a.isComment === b.isComment &&
         isDef(a.data) === isDef(b.data) &&
         sameInputType(a, b)
       ) || (
+        // 对于异步组件
+        // a 目前渲染的是异步组件占位符（没完成异步组件的加载）
+        // 异步组件工厂函数相同
+        // b 没有加载失败
         isTrue(a.isAsyncPlaceholder) &&
         a.asyncFactory === b.asyncFactory &&
         isUndef(b.asyncFactory.error)
@@ -49,6 +60,8 @@ function sameVnode (a, b) {
   )
 }
 
+// 判断当标签是 <input> 的时候，type 是否相同
+// 某些浏览器不支持动态修改 <input> 类型，所以他们被视为不同类型
 function sameInputType (a, b) {
   if (a.tag !== 'input') return true
   let i
@@ -99,6 +112,7 @@ export function createPatchFunction (backend) {
     return remove
   }
 
+  // 调用平台的 DOM API 把真正的 DOM 节点移除
   function removeNode (el) {
     const parent = nodeOps.parentNode(el)
     // element may have already been removed due to v-html / v-text
@@ -368,13 +382,16 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 调用 destroy 钩子函数
   function invokeDestroyHook (vnode) {
     let i, j
     const data = vnode.data
+    // 调用destroy 钩子，过程中会执行组件实例的 beforeDestroy 和 destroy 钩子函数，定义在 src/core/vdom/create-component.js
     if (isDef(data)) {
       if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode)
       for (i = 0; i < cbs.destroy.length; ++i) cbs.destroy[i](vnode)
     }
+    // 递归调用子 vnode 的 destroy 钩子
     if (isDef(i = vnode.children)) {
       for (j = 0; j < vnode.children.length; ++j) {
         invokeDestroyHook(vnode.children[j])
@@ -382,20 +399,26 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 把 vnodes 对应的 DOM 从当前 DOM 树中移除
   function removeVnodes (vnodes, startIdx, endIdx) {
     for (; startIdx <= endIdx; ++startIdx) {
       const ch = vnodes[startIdx]
       if (isDef(ch)) {
-        if (isDef(ch.tag)) {
+        if (isDef(ch.tag)) { // 存在标签时
+          // 移除节点并调用 remove 钩子
           removeAndInvokeRemoveHook(ch)
+          // 调用destroy钩子
           invokeDestroyHook(ch)
         } else { // Text node
+          // 不存在标签代表是一个文本节点，直接移除
           removeNode(ch.elm)
         }
       }
     }
   }
 
+  // 从 DOM 中移除节点并调用 remove 钩子
+  // 并对子节点递归调用 removeAndInvokeRemoveHook
   function removeAndInvokeRemoveHook (vnode, rm) {
     if (isDef(rm) || isDef(vnode.data)) {
       let i
@@ -425,6 +448,8 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 在 patch 过程中，当新旧 vnode 相同，且都有子节点，但是 oldCh 和 newCh 不同时，调用此方法来更新 children
+  // 直接读源码比较晦涩，建议配合 https://ustbhuangyi.github.io/vue-analysis/v2/reactive/component-update.html#updatechildren 一起读
   function updateChildren (parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
     let oldStartIdx = 0
     let newStartIdx = 0
@@ -522,6 +547,7 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 新旧 vnode 相同时，直接更新现有的节点，获取它们的 children，根据不同的情况做不同的逻辑
   function patchVnode (
     oldVnode,
     vnode,
@@ -530,6 +556,7 @@ export function createPatchFunction (backend) {
     index,
     removeOnly
   ) {
+    // 两个VNode节点相同则直接返回
     if (oldVnode === vnode) {
       return
     }
@@ -563,35 +590,43 @@ export function createPatchFunction (backend) {
       return
     }
 
+    // 当新的 vnode 是组件 vnode 时，会执行 prepatch 钩子，定义在 src/core/vdom/create-component.js
     let i
     const data = vnode.data
     if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
       i(oldVnode, vnode)
     }
 
+    // 执行 update 钩子以及用户自定义的 update 回调
     const oldCh = oldVnode.children
     const ch = vnode.children
     if (isDef(data) && isPatchable(vnode)) {
       for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
       if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
     }
-    if (isUndef(vnode.text)) {
-      if (isDef(oldCh) && isDef(ch)) {
+
+    // patch 过程
+
+    if (isUndef(vnode.text)) { // 如果新节点不是文本节点
+      if (isDef(oldCh) && isDef(ch)) { // 新老节点都有 children 子节点
+        // 调用 updateChildren 对子节点进行 diff 操作
         if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
-      } else if (isDef(ch)) {
+      } else if (isDef(ch)) { // 如果老节点没有子节点而新节点存在子节点
         if (process.env.NODE_ENV !== 'production') {
           checkDuplicateKeys(ch)
         }
-        if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
-        addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
-      } else if (isDef(oldCh)) {
-        removeVnodes(oldCh, 0, oldCh.length - 1)
-      } else if (isDef(oldVnode.text)) {
+        if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '') // 如果旧节点是文本节点，先将文本清掉
+        addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue) // 为当前节点批量插入将新子节点
+      } else if (isDef(oldCh)) { // 新节点没有子节点而老节点存在子节点
+        removeVnodes(oldCh, 0, oldCh.length - 1) // 移除所有的子节点
+      } else if (isDef(oldVnode.text)) { // 新老节点都没有子节点，且老节点是文本节点，因为这个逻辑中新节点不是文本节点，所以将老节点的文本删除
         nodeOps.setTextContent(elm, '')
       }
     } else if (oldVnode.text !== vnode.text) {
+      // 新老节点的文本不一样，替换文本内容
       nodeOps.setTextContent(elm, vnode.text)
     }
+    // 调用 postpatch 钩子
     if (isDef(data)) {
       if (isDef(i = data.hook) && isDef(i = i.postpatch)) i(oldVnode, vnode)
     }
@@ -722,6 +757,8 @@ export function createPatchFunction (backend) {
   }
 
   // 返回 patch 方法
+  // 将 vnode 转换为真实 DOM 的过程，叫 patch
+  // 视图首次渲染和视图更新都会调用它
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
@@ -734,11 +771,12 @@ export function createPatchFunction (backend) {
     // patch 子组件时，传入的 oldVnode 为 vm.$el，即为 undefined，会进入到此分支
     if (isUndef(oldVnode)) {
       // empty mount (likely as component), create new root element
+      // oldVnode 未定义时，其实也就是 root 节点，创建一个新的节点
       isInitialPatch = true
       createElm(vnode, insertedVnodeQueue)
     } else {
       const isRealElement = isDef(oldVnode.nodeType) // oldVnode 是否为真实 DOM
-      if (!isRealElement && sameVnode(oldVnode, vnode)) {
+      if (!isRealElement && sameVnode(oldVnode, vnode)) { // 是同一个节点的时候直接修改现有的节点
         // patch existing root node
         patchVnode(oldVnode, vnode, insertedVnodeQueue, null, null, removeOnly)
       } else {
@@ -775,6 +813,8 @@ export function createPatchFunction (backend) {
         const parentElm = nodeOps.parentNode(oldElm)
 
         // create new node
+        // 1.「首次创建」创建新节点，插入到 DOM
+        // 2.「组件更新」新旧 vnode 不同，会创建新节点，插入到 DOM
         createElm(
           vnode,
           insertedVnodeQueue,
@@ -786,15 +826,18 @@ export function createPatchFunction (backend) {
         )
 
         // update parent placeholder node element, recursively
+        // 「组件更新」在上一步创建了新节点，并插入到 DOM
+        // 接着这一步更新父节点
         if (isDef(vnode.parent)) {
-          let ancestor = vnode.parent
+          let ancestor = vnode.parent // 父 vnode
           const patchable = isPatchable(vnode)
           while (ancestor) {
             for (let i = 0; i < cbs.destroy.length; ++i) {
-              cbs.destroy[i](ancestor)
+              cbs.destroy[i](ancestor) // 执行 destroy 钩子
             }
             ancestor.elm = vnode.elm
             if (patchable) {
+              // 执行 create 钩子
               for (let i = 0; i < cbs.create.length; ++i) {
                 cbs.create[i](emptyNode, ancestor)
               }
@@ -816,9 +859,12 @@ export function createPatchFunction (backend) {
         }
 
         // destroy old node
+        // 「组件更新」新旧 vnode 不同时，删除旧节点
+        // 所以当新旧节点不同时，先创建新节点并插入到 DOM，再从 DOM 上移除老节点
         if (isDef(parentElm)) {
           removeVnodes([oldVnode], 0, 0)
         } else if (isDef(oldVnode.tag)) {
+          // 调用 destroy 钩子
           invokeDestroyHook(oldVnode)
         }
       }

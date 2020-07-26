@@ -74,7 +74,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
   Vue.prototype._update = function (vnode: VNode /* vm._render() 返回的 VNode */, hydrating?: boolean /* 非服务端渲染时为 false */) {
     const vm: Component = this
     const prevEl = vm.$el
-    const prevVnode = vm._vnode
+    const prevVnode = vm._vnode // 缓存当前的渲染 vnode
     const restoreActiveInstance = setActiveInstance(vm) // 设置 vm 为正在创建中的当前激活的实例，并返回一个方法将此设置还原
     // 将 vm._vnode 设置为渲染 vnode
     // 父子关系：

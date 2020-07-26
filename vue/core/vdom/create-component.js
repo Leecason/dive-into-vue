@@ -55,13 +55,14 @@ const componentVNodeHooks = {
     }
   },
 
+  // patch 过程中新旧节点相同，当新 vnode 是组件 vnode 时，会调用此方法
   prepatch (oldVnode: MountedComponentVNode, vnode: MountedComponentVNode) {
-    const options = vnode.componentOptions
-    const child = vnode.componentInstance = oldVnode.componentInstance
+    const options = vnode.componentOptions // 新的组件配置
+    const child = vnode.componentInstance = oldVnode.componentInstance // 组件实例
     updateChildComponent(
-      child,
-      options.propsData, // updated props
-      options.listeners, // updated listeners
+      child, // 组件实例
+      options.propsData, // 新的 props
+      options.listeners, // 新的事件中心
       vnode, // new parent vnode
       options.children // new children
     )

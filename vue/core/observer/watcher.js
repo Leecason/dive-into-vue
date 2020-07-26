@@ -22,6 +22,8 @@ let uid = 0
  * A watcher parses an expression, collects dependencies,
  * and fires callback when the expression value changes.
  * This is used for both the $watch() api and directives.
+ *
+ * 一个解析表达式，进行依赖收集的观察者，同时在表达式数据变更时触发回调函数。它被用于 $watch api 以及指令
  */
 export default class Watcher {
   vm: Component;
@@ -53,12 +55,13 @@ export default class Watcher {
     if (isRenderWatcher) {
       vm._watcher = this // vm._watcher 为渲染 watcher
     }
+    // _watchers 存放观察者实例
     vm._watchers.push(this)
     // options
     if (options) {
       this.deep = !!options.deep
       this.user = !!options.user
-      this.lazy = !!options.lazy
+      this.lazy = !!options.lazy // 计算属性 watcher
       this.sync = !!options.sync
       this.before = options.before
     } else {
@@ -67,6 +70,9 @@ export default class Watcher {
     this.cb = cb
     this.id = ++uid // uid for batching
     this.active = true
+    // 计算属性 watcher 的专用属性，进行脏检查
+    // dirty 如果为 true，则下次对计算属性求值时会重新计算
+    // 如果为 false，则表示没有依赖变化，会继续使用上次计算的结果，不重新计算
     this.dirty = this.lazy // for lazy watchers
 
     // 和 dep 有关的属性
@@ -92,6 +98,7 @@ export default class Watcher {
         )
       }
     }
+    // 如果是计算属性 watcher，不会立即求值
     this.value = this.lazy
       ? undefined
       : this.get()
@@ -112,7 +119,8 @@ export default class Watcher {
     // 在 getter 操作中需要对属性进行求值操作，此时的求值会触发属性的 getter
     // 将该观察者对象放入对应属性 Dep 的 subs（订阅者）中去
     try {
-      // 渲染 watcher 的 getter 为 updateComponent，作用是生成 vnode 并 patch 到真实 DOM，定义在 src/core/instance/lifecycle.js
+      // 1. 渲染 watcher 的 getter 为 updateComponent，作用是生成 vnode 并 patch 到真实 DOM，定义在 src/core/instance/lifecycle.js
+      // 2. 计算属性 watcher 在执行 getter 求值时会触发其中响应式属性的 getter，该计算属性 watcher 则会作为该属性的订阅者被 dep 收集
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
@@ -191,7 +199,7 @@ export default class Watcher {
   update () {
     /* istanbul ignore else */
     if (this.lazy) { // 计算属性
-      this.dirty = true
+      this.dirty = true // 脏检查标记设为 true，下次对该计算属性求值时会重新计算
     } else if (this.sync) {
       this.run()
     } else {
@@ -246,14 +254,19 @@ export default class Watcher {
   /**
    * Evaluate the value of the watcher.
    * This only gets called for lazy watchers.
+   *
+   * 获取观察者的值
+   * 该方法只会被计算属性 watcher 使用
    */
   evaluate () {
-    this.value = this.get()
-    this.dirty = false
+    this.value = this.get() // 对计算属性求值
+    this.dirty = false // 将脏检查标记设为 false
   }
 
   /**
    * Depend on all deps collected by this watcher.
+   *
+   * 收集该 watcher 的所有 deps 依赖
    */
   depend () {
     let i = this.deps.length

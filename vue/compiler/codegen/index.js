@@ -25,6 +25,9 @@ export class CodegenState {
     this.options = options
     this.warn = options.warn || baseWarn
     this.transforms = pluckModuleFunction(options.modules, 'transformCode')
+    // 获取所有模块的 genData 函数
+    // class 的 genData：src/platforms/web/compiler/modules/class.js
+    // style 的 genData：src/platforms/web/compiler/modules/style.js
     this.dataGenFns = pluckModuleFunction(options.modules, 'genData')
     this.directives = extend(extend({}, baseDirectives), options.directives)
     const isReservedTag = options.isReservedTag || no
@@ -40,18 +43,24 @@ export type CodegenResult = {
   staticRenderFns: Array<string>
 };
 
+// 编译过程中，将 AST 生成为代码
 export function generate (
   ast: ASTElement | void,
   options: CompilerOptions
 ): CodegenResult {
-  const state = new CodegenState(options)
+  const state = new CodegenState(options) // 实例 CodegenState
+  // 如果传入了 AST 节点则使用 genElement 生成相应的代码，否则生成一条创建空 div 的代码
+  // _c 定义在 src/core/instance/render.js，最终会调用 createElement，是专门给 template 编译生成的 render 使用的
   const code = ast ? genElement(ast, state) : '_c("div")'
   return {
+    // 使用 with 包裹 code，修改整个 code 的执行上下文为 this，在 code 中可以直接使用 xxx 而不需要写作 this.xxx
     render: `with(this){return ${code}}`,
     staticRenderFns: state.staticRenderFns
   }
 }
 
+// 生成创建相应元素的代码串
+// 判断当前 AST 元素的属性来执行不同的代码生成函数
 export function genElement (el: ASTElement, state: CodegenState): string {
   if (el.parent) {
     el.pre = el.pre || el.parent.pre
@@ -61,9 +70,9 @@ export function genElement (el: ASTElement, state: CodegenState): string {
     return genStatic(el, state)
   } else if (el.once && !el.onceProcessed) {
     return genOnce(el, state)
-  } else if (el.for && !el.forProcessed) {
+  } else if (el.for && !el.forProcessed) { // 生成 for 有关的代码串
     return genFor(el, state)
-  } else if (el.if && !el.ifProcessed) {
+  } else if (el.if && !el.ifProcessed) { // 生成条件渲染有关的代码串
     return genIf(el, state)
   } else if (el.tag === 'template' && !el.slotTarget && !state.pre) {
     return genChildren(el, state) || 'void 0'
@@ -71,10 +80,11 @@ export function genElement (el: ASTElement, state: CodegenState): string {
     return genSlot(el, state)
   } else {
     // component or element
+    // 生成组件和普通节点有关的代码串
     let code
-    if (el.component) {
+    if (el.component) { // 生成创建组件代码串
       code = genComponent(el.component, el, state)
-    } else {
+    } else { // 生成创建普通节点代码串
       let data
       if (!el.plain || (el.pre && state.maybeComponent(el))) {
         data = genData(el, state)
@@ -142,12 +152,14 @@ function genOnce (el: ASTElement, state: CodegenState): string {
   }
 }
 
+// 生成有条件渲染的元素的代码串
 export function genIf (
   el: any,
   state: CodegenState,
   altGen?: Function,
   altEmpty?: string
 ): string {
+  // 防止递归对同一个 el 递归调用 genIf
   el.ifProcessed = true // avoid recursion
   return genIfConditions(el.ifConditions.slice(), state, altGen, altEmpty)
 }
@@ -162,18 +174,22 @@ function genIfConditions (
     return altEmpty || '_e()'
   }
 
+  // 获取第一个条件（condition）
   const condition = conditions.shift()
+  // 通过条件的表达式，生成一段三元运算符代码串
   if (condition.exp) {
     return `(${condition.exp})?${
-      genTernaryExp(condition.block)
+      genTernaryExp(condition.block) // condition.block 为条件满足时需要生成的 AST 节点
     }:${
       genIfConditions(conditions, state, altGen, altEmpty)
     }`
   } else {
+    // 递归调用 genIfConditions，所以有多个条件，就会生成多层三元运算逻辑
     return `${genTernaryExp(condition.block)}`
   }
 
   // v-if with v-once should generate code like (a)?_m(0):_m(1)
+  // 生成三元表达式，el 为条件满足时需要生成的 AST 节点
   function genTernaryExp (el) {
     return altGen
       ? altGen(el, state)
@@ -183,16 +199,18 @@ function genIfConditions (
   }
 }
 
+// 生成 v-for 相关的代码串
 export function genFor (
   el: any,
   state: CodegenState,
   altGen?: Function,
   altHelper?: string
 ): string {
-  const exp = el.for
-  const alias = el.alias
-  const iterator1 = el.iterator1 ? `,${el.iterator1}` : ''
-  const iterator2 = el.iterator2 ? `,${el.iterator2}` : ''
+  // 获取和 for 有关的属性
+  const exp = el.for // 被遍历的表达式
+  const alias = el.alias // 元素的别名，v-for 第一个参数
+  const iterator1 = el.iterator1 ? `,${el.iterator1}` : '' // v-for 第二个参数
+  const iterator2 = el.iterator2 ? `,${el.iterator2}` : '' // v-for 第三个参数
 
   if (process.env.NODE_ENV !== 'production' &&
     state.maybeComponent(el) &&
@@ -209,13 +227,17 @@ export function genFor (
     )
   }
 
+  // 防止递归对同一个 el 递归调用 genFor
   el.forProcessed = true // avoid recursion
+  // 根据 AST 节点上的属性生成代码字符串
+  // _l 为 renderList 简写，对应函数为渲染列表，见 core/instance/render-helpers/index.js
   return `${altHelper || '_l'}((${exp}),` +
     `function(${alias}${iterator1}${iterator2}){` +
       `return ${(altGen || genElement)(el, state)}` +
     '})'
 }
 
+// 根据 AST 元素的属性生成 data 对象字符串，在后面创建 vnode 时作为参数传入
 export function genData (el: ASTElement, state: CodegenState): string {
   let data = '{'
 
@@ -244,6 +266,9 @@ export function genData (el: ASTElement, state: CodegenState): string {
     data += `tag:"${el.tag}",`
   }
   // module data generation functions
+  // 遍历所有模块的 genData 函数
+  // class 的 genData：src/platforms/web/compiler/modules/class.js
+  // style 的 genData：src/platforms/web/compiler/modules/style.js
   for (let i = 0; i < state.dataGenFns.length; i++) {
     data += state.dataGenFns[i](el)
   }
@@ -256,10 +281,11 @@ export function genData (el: ASTElement, state: CodegenState): string {
     data += `domProps:${genProps(el.props)},`
   }
   // event handlers
-  if (el.events) {
+  // 处理事件句柄，genHandlers 定义在 src/compiler/codegen/events.j
+  if (el.events) { // 自定义事件
     data += `${genHandlers(el.events, false)},`
   }
-  if (el.nativeEvents) {
+  if (el.nativeEvents) { // 原生事件
     data += `${genHandlers(el.nativeEvents, true)},`
   }
   // slot target
@@ -460,6 +486,7 @@ function genScopedSlot (
   return `{key:${el.slotTarget || `"default"`},fn:${fn}${reverseProxy}}`
 }
 
+// 生成创建子节点代码串
 export function genChildren (
   el: ASTElement,
   state: CodegenState,
@@ -468,9 +495,10 @@ export function genChildren (
   altGenNode?: Function
 ): string | void {
   const children = el.children
-  if (children.length) {
+  if (children.length) { // 有子节点
     const el: any = children[0]
     // optimize single v-for
+    // 单个子节点
     if (children.length === 1 &&
       el.for &&
       el.tag !== 'template' &&
@@ -481,6 +509,7 @@ export function genChildren (
         : ``
       return `${(altGenElement || genElement)(el, state)}${normalizationType}`
     }
+    // 遍历子节点，执行 genNode，根据不同的 AST 类型执行不同方法
     const normalizationType = checkSkip
       ? getNormalizationType(children, state.maybeComponent)
       : 0
@@ -522,16 +551,19 @@ function needsNormalization (el: ASTElement): boolean {
   return el.for !== undefined || el.tag === 'template' || el.tag === 'slot'
 }
 
+// 生成根据 AST 节点创建 vnode 代码串
 function genNode (node: ASTNode, state: CodegenState): string {
-  if (node.type === 1) {
+  if (node.type === 1) { // 普通节点
     return genElement(node, state)
-  } else if (node.type === 3 && node.isComment) {
+  } else if (node.type === 3 && node.isComment) { // 注释节点
     return genComment(node)
-  } else {
+  } else { // 文本节点
     return genText(node)
   }
 }
 
+// 生成创建文本 vnode 代码
+// _v 为 createTextVNode 的简写，表示创建文本 vnode，见 vue/core/instance/render-helpers/index.js
 export function genText (text: ASTText | ASTExpression): string {
   return `_v(${text.type === 2
     ? text.expression // no need for () because already wrapped in _s()
@@ -539,6 +571,8 @@ export function genText (text: ASTText | ASTExpression): string {
   })`
 }
 
+// 生成创建空 vnode（注释节点）代码
+// _e 为 createEmptyVNode 的简写，表示创建空 vnode，见 vue/core/instance/render-helpers/index.js
 export function genComment (comment: ASTText): string {
   return `_e(${JSON.stringify(comment.text)})`
 }

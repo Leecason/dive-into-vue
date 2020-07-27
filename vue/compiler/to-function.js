@@ -9,6 +9,7 @@ type CompiledFunctionResult = {
   staticRenderFns: Array<Function>;
 };
 
+// 将代码串通过 new Function 转换成可执行函数
 function createFunction (code, errors) {
   try {
     return new Function(code)
@@ -19,6 +20,7 @@ function createFunction (code, errors) {
 }
 
 export function createCompileToFunctionFn (compile: Function): Function {
+  // 闭包，缓存 template 编译后的结果
   const cache = Object.create(null)
 
   // 返回的 compileToFunctions 在 src/platforms/web/entry-runtime-with-compiler.js 中被调用
@@ -50,6 +52,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
     }
 
     // check cache
+    // 如果命中缓存，则返回缓存的结果，不再执行编译
     const key = options.delimiters
       ? String(options.delimiters) + template
       : template
@@ -90,8 +93,10 @@ export function createCompileToFunctionFn (compile: Function): Function {
     }
 
     // turn code into functions
+    // 将编译模板后的生成对应节点的代码串转换成可执行函数
     const res = {}
-    const fnGenErrors = []
+    const fnGenErrors = [] // 用处存储在转换过程中出现的错误
+    // 将编译后的 compiled.render 代码串转换成函数
     res.render = createFunction(compiled.render, fnGenErrors)
     res.staticRenderFns = compiled.staticRenderFns.map(code => {
       return createFunction(code, fnGenErrors)
@@ -101,6 +106,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
     // this should only happen if there is a bug in the compiler itself.
     // mostly for codegen development use
     /* istanbul ignore if */
+    // 开发环境，会抛出转换过程中出现的错误警告
     if (process.env.NODE_ENV !== 'production') {
       if ((!compiled.errors || !compiled.errors.length) && fnGenErrors.length) {
         warn(
@@ -111,6 +117,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
       }
     }
 
+    // 缓存模板编译后的结果，并返回结果
     return (cache[key] = res)
   }
 }

@@ -21,10 +21,11 @@ function createFunction (code, errors) {
 export function createCompileToFunctionFn (compile: Function): Function {
   const cache = Object.create(null)
 
+  // 返回的 compileToFunctions 在 src/platforms/web/entry-runtime-with-compiler.js 中被调用
   return function compileToFunctions (
-    template: string,
-    options?: CompilerOptions,
-    vm?: Component
+    template: string, // 模板
+    options?: CompilerOptions, // 编译配置
+    vm?: Component // vue 实例
   ): CompiledFunctionResult {
     options = extend({}, options)
     const warn = options.warn || baseWarn
@@ -57,6 +58,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
     }
 
     // compile
+    // 编译的核心过程
     const compiled = compile(template, options)
 
     // check compilation errors/tips

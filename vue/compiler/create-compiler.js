@@ -4,8 +4,13 @@ import { extend } from 'shared/util'
 import { detectErrors } from './error-detector'
 import { createCompileToFunctionFn } from './to-function'
 
+// baseCompile 是真正对 template 进行编译的方法
 export function createCompilerCreator (baseCompile: Function): Function {
+  // 不同平台编译过程中依赖的 baseOptions 不同，但是同一平台每一次编译的 baseOptions 是相同的
+  // Vue 使用函数柯里化将 baseOptions 进行保留，避免了每次编译都需要传参
   return function createCompiler (baseOptions: CompilerOptions) {
+    // 传入给 createCompileToFunctionFn，在该方法返回的 compileToFunctions 中被调用
+    // 它会先处理配置参数，最后调用 baseCompile 执行真正的编译
     function compile (
       template: string,
       options?: CompilerOptions
@@ -69,6 +74,7 @@ export function createCompilerCreator (baseCompile: Function): Function {
 
     return {
       compile,
+      // compileToFunctions 在 src/platforms/web/entry-runtime-with-compiler.js 中被调用
       compileToFunctions: createCompileToFunctionFn(compile)
     }
   }

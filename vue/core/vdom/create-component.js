@@ -219,7 +219,7 @@ export function createComponent (
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
     data, undefined /* 组件 VNode 是没有 children 的 */, undefined, undefined, context,
-    { Ctor, propsData, listeners /* 自定义事件 */, tag, children }, /* componentOptions */
+    { Ctor, propsData, listeners /* 自定义事件 */, tag, children /* 传给子组件的插槽内容 */ }, /* componentOptions */
     asyncFactory
   )
 

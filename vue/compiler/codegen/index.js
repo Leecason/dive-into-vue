@@ -79,7 +79,7 @@ export function genElement (el: ASTElement, state: CodegenState): string {
     return genIf(el, state)
   } else if (el.tag === 'template' && !el.slotTarget && !state.pre) {
     return genChildren(el, state) || 'void 0'
-  } else if (el.tag === 'slot') {
+  } else if (el.tag === 'slot') { // AST 元素为 <slot> 标签，生成插槽有关的代码串
     return genSlot(el, state)
   } else {
     // component or element
@@ -295,16 +295,20 @@ export function genData (el: ASTElement, state: CodegenState): string {
   }
   // slot target
   // only for non-scoped slots
+  // 普通插槽
   if (el.slotTarget && !el.slotScope) {
+    // 给 data 拼接 slot 属性
     data += `slot:${el.slotTarget},`
   }
   // scoped slots
+  // 作用域插槽
   if (el.scopedSlots) {
+    // 给 data 拼接 scopedSlots 属性
     data += `${genScopedSlots(el, el.scopedSlots, state)},`
   }
   // component v-model
   // 在上方的 genDirectives 时如果在模版中给组件添加了 v-model
-  // 则会给 el 添加 model 属性，在这里将 model 属性添加到 data 中
+  // 则会给 el 添加 model 属性，在这里将 model 属性拼接到 data 中
   if (el.model) {
     data += `model:{value:${
       el.model.value
@@ -392,9 +396,10 @@ function genInlineTemplate (el: ASTElement, state: CodegenState): ?string {
   }
 }
 
+// 生成整个作用域插槽相关的代码串，对每一个插槽调用 genScopedSlot
 function genScopedSlots (
-  el: ASTElement,
-  slots: { [key: string]: ASTElement },
+  el: ASTElement, // AST 节点
+  slots: { [key: string]: ASTElement }, // slots 为对象，key 为插槽名称，值为作为插槽的 AST 节点
   state: CodegenState
 ): string {
   // by default scoped slots are considered "stable", this allows child
@@ -439,10 +444,15 @@ function genScopedSlots (
     }
   }
 
+  // 遍历 slots 每个 key，也就是插槽名
+  // slots[key] 对应的值为 AST 节点，传入 genScopedSlot，返回一个对象
+  // 对象构成的数组再 join 起来使用逗号分隔
   const generatedSlots = Object.keys(slots)
     .map(key => genScopedSlot(slots[key], state))
     .join(',')
 
+  //返回 scopedSlots 代码串，在运行时，scopedSlots 的属性值是调用 _u 方法的返回值
+  // _u 函数对应为 resolveScopedSlots, 见 src/core/instance/render-helpers/index.js
   return `scopedSlots:_u([${generatedSlots}]${
     needsForceUpdate ? `,null,true` : ``
   }${
@@ -469,8 +479,9 @@ function containsSlotChild (el: ASTNode): boolean {
   return false
 }
 
+// 生成作用域插槽相关代码串
 function genScopedSlot (
-  el: ASTElement,
+  el: ASTElement, // 作为插槽的 AST 节点
   state: CodegenState
 ): string {
   const isLegacySyntax = el.attrsMap['slot-scope']
@@ -480,18 +491,23 @@ function genScopedSlot (
   if (el.for && !el.forProcessed) {
     return genFor(el, state, genScopedSlot)
   }
+  // slotScope 为模板 slot-scope="xxx" 中的 xxx
   const slotScope = el.slotScope === emptySlotScopeToken
     ? ``
     : String(el.slotScope)
-  const fn = `function(${slotScope}){` +
-    `return ${el.tag === 'template'
+  const fn = `function(${slotScope}){` + // 参数为绑定的 slot-scope
+    // 函数体
+    `return ${el.tag === 'template' // 判断是否是 <template> 标签
       ? el.if && isLegacySyntax
         ? `(${el.if})?${genChildren(el, state) || 'undefined'}:undefined`
-        : genChildren(el, state) || 'undefined'
-      : genElement(el, state)
+        : genChildren(el, state) || 'undefined' // 因为 <template> 不渲染任何 dom 节点，所以返回 genChildren
+      : genElement(el, state) // 不为 <template> 标签，返回 genElement
     }}`
   // reverse proxy v-slot without scope on this.$slots
   const reverseProxy = slotScope ? `` : `,proxy:true`
+  // 返回一个对象
+  // key 的值为插槽名称，默认为 default
+  // fn 的值为上方构造的 fn
   return `{key:${el.slotTarget || `"default"`},fn:${fn}${reverseProxy}}`
 }
 
@@ -586,10 +602,13 @@ export function genComment (comment: ASTText): string {
   return `_e(${JSON.stringify(comment.text)})`
 }
 
+// 生成 <slot> 标签相关的代
 function genSlot (el: ASTElement, state: CodegenState): string {
-  const slotName = el.slotName || '"default"'
-  const children = genChildren(el, state)
+  const slotName = el.slotName || '"default"' // 插槽名，默认为 default
+  const children = genChildren(el, state) // 插槽标签包裹的子节点作为默认内容
+  // 在运行时，_t 函数对应 renderSlot，表示渲染插槽，见 src/core/instance/render-helpers/index.js
   let res = `_t(${slotName}${children ? `,${children}` : ''}`
+  // attrs 为提供给作用域插槽的属性
   const attrs = el.attrs || el.dynamicAttrs
     ? genProps((el.attrs || []).concat(el.dynamicAttrs || []).map(attr => ({
         // slot props are camelized
@@ -598,11 +617,15 @@ function genSlot (el: ASTElement, state: CodegenState): string {
         dynamic: attr.dynamic
       })))
     : null
-  const bind = el.attrsMap['v-bind']
+  const bind = el.attrsMap['v-bind'] // 动态绑定
+
+  // renderSlot 方法第二个参数是 fallback（默认的插槽内容），也就是这里的 children
+  // 第三个参数是 props（提供给作用域插槽的属性），对应这里的 attrs
+  // 如果有 attrs 但没有默认插槽内容的话会首先给第二个参数（fallback）传 null
   if ((attrs || bind) && !children) {
     res += `,null`
   }
-  if (attrs) {
+  if (attrs) { // 将 attrs 作为 _t 的第三个参数（props）传入，提供给作用域插槽
     res += `,${attrs}`
   }
   if (bind) {

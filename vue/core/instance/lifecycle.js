@@ -331,6 +331,7 @@ export function updateChildComponent (
 
   // resolve slots + force update if has children
   if (needsForceUpdate) {
+    // 父组件数据有更新，会更新子组件的 $slots，并且调用子组件实例的 $forceUpdate 来重新渲染插槽
     vm.$slots = resolveSlots(renderChildren, parentVnode.context)
     vm.$forceUpdate()
   }

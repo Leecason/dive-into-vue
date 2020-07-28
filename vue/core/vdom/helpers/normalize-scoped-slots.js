@@ -5,8 +5,8 @@ import { normalizeChildren } from 'core/vdom/helpers/normalize-children'
 import { emptyObject } from 'shared/util'
 
 export function normalizeScopedSlots (
-  slots: { [key: string]: Function } | void,
-  normalSlots: { [key: string]: Array<VNode> },
+  slots: { [key: string]: Function } | void, // 作用域插槽
+  normalSlots: { [key: string]: Array<VNode> }, // 普通插槽
   prevSlots?: { [key: string]: Function } | void
 ): any {
   let res

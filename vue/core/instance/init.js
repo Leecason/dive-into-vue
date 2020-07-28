@@ -108,7 +108,8 @@ export function initInternalComponent (vm: Component, options: InternalComponent
   const vnodeComponentOptions = parentVnode.componentOptions
   opts.propsData = vnodeComponentOptions.propsData // 传给子组件的 props
   opts._parentListeners = vnodeComponentOptions.listeners // 绑定到子组件的自定义事件
-  opts._renderChildren = vnodeComponentOptions.children
+  // 在实例组件 vnode 时，父组件会传入 children 作为子组件 vnode 的 componentOptions，见 src/core/vdom/create-component.js
+  opts._renderChildren = vnodeComponentOptions.children // 父组件传给子组件的插槽内容
   opts._componentTag = vnodeComponentOptions.tag
 
   if (options.render) {

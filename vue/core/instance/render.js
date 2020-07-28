@@ -16,13 +16,14 @@ import VNode, { createEmptyVNode } from '../vdom/vnode'
 
 import { isUpdatingChildComponent } from './lifecycle'
 
+// 调用时机是在 vm 初始化时，beforeCreate 前，initEvent 后
 export function initRender (vm: Component) {
   vm._vnode = null // the root of the child tree
   vm._staticTrees = null // v-once cached trees
   const options = vm.$options
   const parentVnode = vm.$vnode = options._parentVnode // the placeholder node in parent tree
-  const renderContext = parentVnode && parentVnode.context
-  vm.$slots = resolveSlots(options._renderChildren, renderContext)
+  const renderContext = parentVnode && parentVnode.context // 父 vue 实例
+  vm.$slots = resolveSlots(options._renderChildren /* 父组件传入子组件的插槽内容，是已经在父作用域下实例好的 vnodes */ , renderContext /* 父 vue 实例 */)
   vm.$scopedSlots = emptyObject
   // bind the createElement fn to this instance
   // so that we get proper render context inside it.
@@ -75,8 +76,11 @@ export function renderMixin (Vue: Class<Component>) {
     const vm: Component = this
     const { render, _parentVnode } = vm.$options
 
-    if (_parentVnode) {
+    if (_parentVnode) { // 当前节点的父 vnode
+      // 初始化 $scopedSlots，保证在运行时渲染插槽时能获取到
       vm.$scopedSlots = normalizeScopedSlots(
+        // 通过在 codegen 了解到 data.scopedSlots 是通过 _u（resolveScopedSlots）生成的
+        // 见 src/compiler/codegen/index.js 的 genScopedSlots 方法
         _parentVnode.data.scopedSlots,
         vm.$slots,
         vm.$scopedSlots

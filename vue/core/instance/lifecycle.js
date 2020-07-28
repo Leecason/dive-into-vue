@@ -44,7 +44,9 @@ export function initLifecycle (vm: Component) {
   // locate first non-abstract parent
   // 在创建子组件过程中，parent 实际上是 createComponentInstanceForVnode 方法传入的 activeInstance
   let parent = options.parent
+  // 建立父子关系链
   if (parent && !options.abstract) {
+    // 当父 vue 实例是抽象实例时，会忽略此父实例，继续查找父实例的父实例
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
@@ -348,7 +350,9 @@ function isInInactiveTree (vm) {
   return false
 }
 
+// 调用组件及子组件的 activated 钩子函数
 export function activateChildComponent (vm: Component, direct?: boolean) {
+  // _inactive 和 directInactive 变量是为了防止 activated 钩子重复调用
   if (direct) {
     vm._directInactive = false
     if (isInInactiveTree(vm)) {
@@ -359,14 +363,17 @@ export function activateChildComponent (vm: Component, direct?: boolean) {
   }
   if (vm._inactive || vm._inactive === null) {
     vm._inactive = false
+    // 递归调用子组件的 activated 钩子函数
     for (let i = 0; i < vm.$children.length; i++) {
       activateChildComponent(vm.$children[i])
     }
-    callHook(vm, 'activated')
+    callHook(vm, 'activated') // 调用 activated 钩子
   }
 }
 
+// 调用组件及子组件的 deactivated 钩子函数
 export function deactivateChildComponent (vm: Component, direct?: boolean) {
+  // _inactive 和 directInactive 变量是为了防止 deactivated 钩子重复调用
   if (direct) {
     vm._directInactive = true
     if (isInInactiveTree(vm)) {
@@ -375,10 +382,11 @@ export function deactivateChildComponent (vm: Component, direct?: boolean) {
   }
   if (!vm._inactive) {
     vm._inactive = true
+    // 递归调用子组件的 deactivated 钩子函数
     for (let i = 0; i < vm.$children.length; i++) {
       deactivateChildComponent(vm.$children[i])
     }
-    callHook(vm, 'deactivated')
+    callHook(vm, 'deactivated') // 调用 deactivated 钩子
   }
 }
 

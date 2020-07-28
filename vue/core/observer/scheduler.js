@@ -147,6 +147,7 @@ function flushSchedulerQueue () {
   resetSchedulerState()
 
   // call component updated and activated hooks
+  // 调用 patch 时重新被激活的组件的 activated 钩子函数
   callActivatedHooks(activatedQueue)
   callUpdatedHooks(updatedQueue)
 
@@ -172,6 +173,9 @@ function callUpdatedHooks (queue) {
 /**
  * Queue a kept-alive component that was activated during patch.
  * The queue will be processed after the entire tree has been patched.
+ *
+ * 将 patch 时重新被激活的组件（keep-live 缓存的组件）加入队列
+ * 这个队列将在整颗节点树 patch 完成后被处理
  */
 export function queueActivatedComponent (vm: Component) {
   // setting _inactive to false here so that a render function can
@@ -180,6 +184,7 @@ export function queueActivatedComponent (vm: Component) {
   activatedChildren.push(vm)
 }
 
+// 执行被重新激活组件的 activated 钩子函数
 function callActivatedHooks (queue) {
   for (let i = 0; i < queue.length; i++) {
     queue[i]._inactive = true

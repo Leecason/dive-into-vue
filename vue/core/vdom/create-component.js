@@ -40,11 +40,11 @@ const componentVNodeHooks = {
       vnode.componentInstance &&
       !vnode.componentInstance._isDestroyed &&
       vnode.data.keepAlive
-    ) {
+    ) { // 命中组件的缓存渲染（被 <keep-alive> 缓存），直接执行 prepatch 钩子，不会再执行一次组件创建了，所以组件的 created，mounted 钩子都不会执行
       // kept-alive components, treat as a patch
       const mountedNode: any = vnode // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode)
-    } else { // 在非 keepAlive 情况下，通过组件 vnode 创建组件 vue 实例
+    } else { // 在非 keepAlive 情况下（包含 keepAlive 时的首次渲染），通过组件 VNode 创建组件 Vue 实例
       const child = vnode.componentInstance = createComponentInstanceForVnode(
         vnode,
         activeInstance // 子组件的父 vue 实例，为当前激活的 vue 实例
@@ -71,30 +71,36 @@ const componentVNodeHooks = {
   // patch vnode 到 DOM 后在 invokeInsertHook 方法中调用
   insert (vnode: MountedComponentVNode) {
     const { context, componentInstance } = vnode
-    if (!componentInstance._isMounted) {
-      componentInstance._isMounted = true
+    if (!componentInstance._isMounted) { // 组件首次 mounted
+      componentInstance._isMounted = true // mounted 标记
       callHook(componentInstance, 'mounted') // 调用子组件实例 mounted 钩子，执行顺序为先子后父
     }
-    if (vnode.data.keepAlive) {
-      if (context._isMounted) {
+    if (vnode.data.keepAlive) { // 该组件是被 <keep-alive> 包裹的组件
+      if (context._isMounted) { // <keep-alive> 组件已经 mounted
         // vue-router#1212
         // During updates, a kept-alive component's child components may
         // change, so directly walking the tree here may call activated hooks
         // on incorrect children. Instead we push them into a queue which will
         // be processed after the whole patch process ended.
+
+        // 将被包裹的组件实例添加到 activated children，在 nextTick 后调用包裹组件及子组件的 activated 钩子
+        // 定义在 src/core/observer/scheduler.js
         queueActivatedComponent(componentInstance)
-      } else {
+      } else { // <keep-alive> 组件还没有 mounted，调用包裹组件及子组件的 activated 钩子
+        // 定义在 src/core/instance/lifecycle.js
         activateChildComponent(componentInstance, true /* direct */)
       }
     }
   },
 
+  // 组件销毁的钩子方法
   destroy (vnode: MountedComponentVNode) {
     const { componentInstance } = vnode
     if (!componentInstance._isDestroyed) {
-      if (!vnode.data.keepAlive) {
+      if (!vnode.data.keepAlive) { // 普通组件的销毁，调用实例的 $destroy，在内部调用 destroyed 钩子
         componentInstance.$destroy()
-      } else {
+      } else { // 销毁 keep-alive 缓存组件，调用组件及子组件的 deactivated 钩子
+        // 定义在 src/core/instance/lifecycle.js
         deactivateChildComponent(componentInstance, true /* direct */)
       }
     }

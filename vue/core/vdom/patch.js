@@ -244,11 +244,11 @@ export function createPatchFunction (backend) {
   function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
     let i = vnode.data
     if (isDef(i)) {
+      // 判断是否是重新激活的组件（被 keep-alive 缓存的组件）
       const isReactivated = isDef(vnode.componentInstance) && i.keepAlive
       // 回顾 src/core/vdom/create-component.js 文件中创建组件 vnode 的 createComponent 方法
-      // 因为在实例组件 vnode 时安装了一些钩子函数，其中包含 `init` 钩子
-      // 所以如果 vnode 为组件 vnode，下方的判断会成立并且 i 会等于 init，然后传入 vnode 并执行
-      // 在 src/core/vdom/create-component.js 查看 componentVNodeHooks（组件 vnode 钩子）的 init 钩子
+      // 因为在实例组件 vnode 时安装了一些钩子函数，其中包含 `init` 钩子，找到 hook 中的 init 方法并执行
+      // 在 src/core/vdom/create-component.js 查看 componentVNodeHooks（组件 vnode 钩子）的 init 方法
       if (isDef(i = i.hook) && isDef(i = i.init)) {
         i(vnode, false /* hydrating */)
       }
@@ -260,6 +260,7 @@ export function createPatchFunction (backend) {
         initComponent(vnode, insertedVnodeQueue)
         insert(parentElm, vnode.elm, refElm) // 完成组件的 DOM 插入，如果在组件 patch 过程中又创建了子组件，那么 DOM 插入顺序为先子后父
         if (isTrue(isReactivated)) {
+          // 处理被 keep-alive 缓存的组件重新激活时过渡的问题
           reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm)
         }
         return true
@@ -292,6 +293,7 @@ export function createPatchFunction (backend) {
     // again. It's not ideal to involve module-specific logic in here but
     // there doesn't seem to be a better way to do it.
     let innerNode = vnode
+    // 处理被 keep-alive 缓存组件重新激活时 transition 动画不触发的问题
     while (innerNode.componentInstance) {
       innerNode = innerNode.componentInstance._vnode
       if (isDef(i = innerNode.data) && isDef(i = i.transition)) {

@@ -22,7 +22,7 @@ import {
 } from '../helpers'
 
 export const onRE = /^@|^v-on:/
-export const dirRE = process.env.VBIND_PROP_SHORTHAND
+export const dirRE = process.env.VBIND_PROP_SHORTHAND // 匹配 `v-`，`@`，`:`，`.` 修饰符
   ? /^v-|^@|^:|^\.|^#/
   : /^v-|^@|^:|^#/
 export const forAliasRE = /([\s\S]*?)\s+(?:in|of)\s+([\s\S]*)/
@@ -33,7 +33,7 @@ const dynamicArgRE = /^\[.*\]$/
 const argRE = /:(.*)$/
 export const bindRE = /^:|^\.|^v-bind:/
 const propBindRE = /^\./
-const modifierRE = /\.[^.\]]+(?=[^\]]*$)/g
+const modifierRE = /\.[^.\]]+(?=[^\]]*$)/g // 匹配修饰符
 
 const slotRE = /^v-slot(:|$)|^#/
 
@@ -786,23 +786,25 @@ function processComponent (el) {
   }
 }
 
+// 处理标签元素上绑定的属性，el 为 AST 元素
 function processAttrs (el) {
-  const list = el.attrsList
+  const list = el.attrsList // 获取属性列表
   let i, l, name, rawName, value, modifiers, syncGen, isDynamic
+  // 遍历属性列表
   for (i = 0, l = list.length; i < l; i++) {
     name = rawName = list[i].name
     value = list[i].value
-    if (dirRE.test(name)) {
+    if (dirRE.test(name)) { // 匹配指令正则
       // mark element as dynamic
-      el.hasBindings = true
+      el.hasBindings = true // 标记为动态节点
       // modifiers
-      modifiers = parseModifiers(name.replace(dirRE, ''))
+      modifiers = parseModifiers(name.replace(dirRE, '')) // 解析出修饰符
       // support .foo shorthand syntax for the .prop modifier
       if (process.env.VBIND_PROP_SHORTHAND && propBindRE.test(name)) {
         (modifiers || (modifiers = {})).prop = true
         name = `.` + name.slice(1).replace(modifierRE, '')
       } else if (modifiers) {
-        name = name.replace(modifierRE, '')
+        name = name.replace(modifierRE, '') // 如果解析出了修饰符，就将修饰符字符串从 name 中去掉
       }
       if (bindRE.test(name)) { // v-bind
         name = name.replace(bindRE, '')
@@ -872,12 +874,13 @@ function processAttrs (el) {
         } else {
           addAttr(el, name, value, list[i], isDynamic)
         }
-      } else if (onRE.test(name)) { // v-on
-        name = name.replace(onRE, '')
+      } else if (onRE.test(name)) { // 匹配命中 v-on 指令
+        name = name.replace(onRE, '') // 去掉指令前面的 v-on 部分，只剩下 v-on 后面的表达式
         isDynamic = dynamicArgRE.test(name)
         if (isDynamic) {
           name = name.slice(1, -1)
         }
+        // 添加事件处理器，方法定义在 src/compiler/helpers.js
         addHandler(el, name, value, modifiers, false, warn, list[i], isDynamic)
       } else { // normal directives
         name = name.replace(dirRE, '')
@@ -934,10 +937,17 @@ function checkInFor (el: ASTElement): boolean {
   return false
 }
 
+// 解析出修饰符
 function parseModifiers (name: string): Object | void {
-  const match = name.match(modifierRE)
-  if (match) {
-    const ret = {}
+  const match = name.match(modifierRE) // 匹配修饰符正则
+  if (match) { // 匹配到修饰符
+    const ret = {} // 构造修饰符对象
+    // 遍历匹配到的结果，写入对象
+    // 例如
+    // {
+    //   native: true,
+    //   prevent: true,
+    // }
     match.forEach(m => { ret[m.slice(1)] = true })
     return ret
   }

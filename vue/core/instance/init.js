@@ -38,6 +38,8 @@ export function initMixin (Vue: Class<Component>) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
+
+      // 将创建子组件时的一些参数合并到 vm.$options 上
       initInternalComponent(vm, options) // 因为不涉及递归操作，比 else 分支中外部调用场景的 mergeOptions 的过程要快
     } else { // 外部调用场景，通常为 new Vue() 时
       // 将 resolveConstructorOptions 返回的 options 和传入的 options 做合并，
@@ -102,10 +104,10 @@ export function initInternalComponent (vm: Component, options: InternalComponent
   opts.parent = options.parent // 子组件的父 vue 实例
   opts._parentVnode = parentVnode
 
-  // 获取到父组件的一些配置
+  // 拿到父组件传入的组件选项
   const vnodeComponentOptions = parentVnode.componentOptions
   opts.propsData = vnodeComponentOptions.propsData // 传给子组件的 props
-  opts._parentListeners = vnodeComponentOptions.listeners // 监听子组件的自定义事件
+  opts._parentListeners = vnodeComponentOptions.listeners // 绑定到子组件的自定义事件
   opts._renderChildren = vnodeComponentOptions.children
   opts._componentTag = vnodeComponentOptions.tag
 

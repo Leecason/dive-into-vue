@@ -10,6 +10,8 @@ import { currentFlushTimestamp } from 'core/observer/scheduler'
 // it's important to place the event as the first in the array because
 // the whole point is ensuring the v-model callback gets called before
 // user-attached handlers.
+
+// 处理 v-model
 function normalizeEvents (on) {
   /* istanbul ignore if */
   if (isDef(on[RANGE_TOKEN])) {
@@ -29,11 +31,14 @@ function normalizeEvents (on) {
 
 let target: any
 
+// 创建只执行一次的回调函数
 function createOnceHandler (event, handler, capture) {
+  // 在闭包中存储当前的 target
   const _target = target // save current target element in closure
+  // 返回只执行一次的回调函数
   return function onceHandler () {
     const res = handler.apply(null, arguments)
-    if (res !== null) {
+    if (res !== null) { // 首次回调执行完毕后移除事件监听器
       remove(event, onceHandler, capture, _target)
     }
   }
@@ -44,11 +49,12 @@ function createOnceHandler (event, handler, capture) {
 // safe to exclude.
 const useMicrotaskFix = isUsingMicroTask && !(isFF && Number(isFF[1]) <= 53)
 
+// 添加事件监听器
 function add (
-  name: string,
-  handler: Function,
-  capture: boolean,
-  passive: boolean
+  name: string, // 事件名
+  handler: Function, // 回调函数，是 invoker 函数，定义在 src/core/vdom/helpers/update-listeners.js createFnInvoker 方法
+  capture: boolean, // addEventListener 参数
+  passive: boolean // addEventListener 参数
 ) {
   // async edge case #6566: inner click event triggers patch, event handler
   // attached to outer element during patch, and triggered again. This
@@ -80,6 +86,7 @@ function add (
       }
     }
   }
+  // 调用 DOM API 添加事件监听器
   target.addEventListener(
     name,
     handler,
@@ -89,6 +96,7 @@ function add (
   )
 }
 
+// 移除 DOM 的事件监听器
 function remove (
   name: string,
   handler: Function,
@@ -102,14 +110,18 @@ function remove (
   )
 }
 
+// 更新 DOM 的事件监听器
 function updateDOMListeners (oldVnode: VNodeWithData, vnode: VNodeWithData) {
+  // oldVnode 和 vnode 的 data 上需要定义 on，也就是需要绑定的 DOM 原生事件
   if (isUndef(oldVnode.data.on) && isUndef(vnode.data.on)) {
     return
   }
-  const on = vnode.data.on || {}
+  const on = vnode.data.on || {} // 这里的 on 是绑定的原生事件的列表，而不是自定义事件
   const oldOn = oldVnode.data.on || {}
-  target = vnode.elm
-  normalizeEvents(on)
+  target = vnode.elm // target 为 vnode 对应的真实的 DOM 节点
+  normalizeEvents(on) // 处理 v-model 事件
+  // 更新事件监听器，因为与自定义事件共用这个方法，所以没有定义在这个文件中
+  // 定义在 src/core/vdom/helpers/update-listeners.js
   updateListeners(on, oldOn, add, remove, createOnceHandler, vnode.context)
   target = undefined
 }

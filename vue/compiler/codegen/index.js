@@ -281,7 +281,8 @@ export function genData (el: ASTElement, state: CodegenState): string {
     data += `domProps:${genProps(el.props)},`
   }
   // event handlers
-  // 处理事件句柄，genHandlers 定义在 src/compiler/codegen/events.j
+  // 处理事件句柄，根据 AST 元素上的 events 和 nativeEvents 属性生成 data 数据
+  // genHandlers 定义在 src/compiler/codegen/events.js
   if (el.events) { // 自定义事件
     data += `${genHandlers(el.events, false)},`
   }

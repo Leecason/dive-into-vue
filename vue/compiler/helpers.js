@@ -66,17 +66,18 @@ function prependModifierMarker (symbol: string, name: string, dynamic?: boolean)
     : symbol + name // mark the event as captured
 }
 
+// 添加事件处理器，目的是给 el 的 nativeEvents 或 events 上添加属性
 export function addHandler (
-  el: ASTElement,
-  name: string,
-  value: string,
-  modifiers: ?ASTModifiers,
-  important?: boolean,
+  el: ASTElement, // AST 元素
+  name: string, // 事件名
+  value: string, // 事件绑定的回调表达式
+  modifiers: ?ASTModifiers, // 事件修饰符
+  important?: boolean, // 为 true 表示这个事件应该添加到事件列表最前面
   warn?: ?Function,
   range?: Range,
   dynamic?: boolean
 ) {
-  modifiers = modifiers || emptyObject
+  modifiers = modifiers || emptyObject // 事件修饰符默认为空对象
   // warn prevent and passive modifier
   /* istanbul ignore if */
   if (
@@ -90,59 +91,63 @@ export function addHandler (
     )
   }
 
+  // 1. 首先根据修饰符对事件名 name 做处理
+
   // normalize click.right and click.middle since they don't actually fire
   // this is technically browser-specific, but at least for now browsers are
   // the only target envs that have right/middle clicks.
-  if (modifiers.right) {
+  if (modifiers.right) { // right 修饰符
     if (dynamic) {
       name = `(${name})==='click'?'contextmenu':(${name})`
-    } else if (name === 'click') {
+    } else if (name === 'click') { // 如果是 click.right 则事件名 name 将变为 contextmenu
       name = 'contextmenu'
       delete modifiers.right
     }
-  } else if (modifiers.middle) {
+  } else if (modifiers.middle) { // middle 修饰符
     if (dynamic) {
       name = `(${name})==='click'?'mouseup':(${name})`
-    } else if (name === 'click') {
+    } else if (name === 'click') { // 如果是 click.middle 则事件名 name 将变为 mouseup
       name = 'mouseup'
     }
   }
 
   // check capture modifier
-  if (modifiers.capture) {
+  if (modifiers.capture) { // capture 修饰符，会在事件名 name 前面加上 `!`，会在运行时处理
     delete modifiers.capture
     name = prependModifierMarker('!', name, dynamic)
   }
-  if (modifiers.once) {
+  if (modifiers.once) { // once 修饰符，会在事件名 name 前面加上 `~`，会在运行时处理
     delete modifiers.once
     name = prependModifierMarker('~', name, dynamic)
   }
   /* istanbul ignore if */
-  if (modifiers.passive) {
+  if (modifiers.passive) { // passive 修饰符，会在事件名 name 前面加上 `&`，会在运行时处理
     delete modifiers.passive
     name = prependModifierMarker('&', name, dynamic)
   }
 
   let events
-  if (modifiers.native) {
+  // 判断将 handler 添加进 nativeEvents（原生事件） 还是 events（自定义事件） 中
+  if (modifiers.native) { // 如果是 native 修饰符，表示原生事件
     delete modifiers.native
     events = el.nativeEvents || (el.nativeEvents = {})
   } else {
     events = el.events || (el.events = {})
   }
 
-  const newHandler: any = rangeSetItem({ value: value.trim(), dynamic }, range)
-  if (modifiers !== emptyObject) {
+  const newHandler: any = rangeSetItem({ value: value.trim(), dynamic }, range) // 构造 handler 对象
+  if (modifiers !== emptyObject) { // 将修饰符添加进这个 handler 对象
     newHandler.modifiers = modifiers
   }
 
   const handlers = events[name]
   /* istanbul ignore if */
-  if (Array.isArray(handlers)) {
+  // 对同一个事件名可以添加多个回调函数
+  if (Array.isArray(handlers)) { // 已经对该事件添加了多次 handler
     important ? handlers.unshift(newHandler) : handlers.push(newHandler)
-  } else if (handlers) {
+  } else if (handlers) { // 第二次对该事件添加 handler
     events[name] = important ? [newHandler, handlers] : [handlers, newHandler]
-  } else {
+  } else { // 第一次对该事件添加 handler
     events[name] = newHandler
   }
 

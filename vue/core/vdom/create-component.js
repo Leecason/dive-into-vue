@@ -186,9 +186,15 @@ export function createComponent (
 
   // extract listeners, since these needs to be treated as
   // child component listeners instead of DOM listeners
+
+  // 将定义的组件自定义事件暂存，之后实例组件 vnode 时作为参数传入
   const listeners = data.on
   // replace with listeners with .native modifier
   // so it gets processed during parent component patch.
+
+  // 将 .native 修饰符的事件（原生 DOM 事件）赋值给 on
+  // 因为普通节点定义的原生事件是在 data.on 中，这里将组件节点定义的原生事件 data.nativeOn 改写到 data.on 中
+  // 而组件定义的自定义事件在上一步已经提取出来暂存到 listeners 变量中了
   data.on = data.nativeOn
 
   if (isTrue(Ctor.options.abstract)) {
@@ -212,7 +218,7 @@ export function createComponent (
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
     data, undefined /* 组件 VNode 是没有 children 的 */, undefined, undefined, context,
-    { Ctor, propsData, listeners, tag, children }, /* componentOptions */
+    { Ctor, propsData, listeners /* 自定义事件 */, tag, children }, /* componentOptions */
     asyncFactory
   )
 
@@ -232,6 +238,7 @@ export function createComponentInstanceForVnode (
   vnode: any, // we know it's MountedComponentVNode but flow doesn't
   parent: any, // activeInstance in lifecycle state
 ): Component {
+  // 传给子组件生成 vue 实例时的一些选项
   const options: InternalComponentOptions = {
     _isComponent: true, // 表示是一个组件
     _parentVnode: vnode, // 子组件的父 vnode

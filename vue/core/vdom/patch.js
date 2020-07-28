@@ -87,13 +87,18 @@ export function createPatchFunction (backend) {
   let i, j
   const cbs = {}
 
-  const { modules, nodeOps } = backend
+  const {
+    modules, // 各个模块的钩子函数，web 平台定义在 src/platforms/web/runtime/patch.js
+    nodeOps // 平台相关的一些操作 DOM 的方法
+  } = backend
 
+  // 遍历 hooks，['create', 'activate', 'update', 'remove', 'destroy']，
+  // 对应 patch 过程各个时期的钩子
   for (i = 0; i < hooks.length; ++i) {
-    cbs[hooks[i]] = []
-    for (j = 0; j < modules.length; ++j) {
-      if (isDef(modules[j][hooks[i]])) {
-        cbs[hooks[i]].push(modules[j][hooks[i]])
+    cbs[hooks[i]] = [] // / 初始化每个 hook 为空数组
+    for (j = 0; j < modules.length; ++j) { // 遍历 modules
+      if (isDef(modules[j][hooks[i]])) { // 如果 module 定义了该 hook 的钩子函数
+        cbs[hooks[i]].push(modules[j][hooks[i]]) // 将该钩子函数添加进对应的 hook 数组中
       }
     }
   }
@@ -338,8 +343,13 @@ export function createPatchFunction (backend) {
     return isDef(vnode.tag)
   }
 
-  // 执行所有 create 钩子，并将 vnode push 到 insertedVnodeQueue
+  // 节点创建阶段调用的函数，执行所有 create 钩子，并将 vnode push 到 insertedVnodeQueue
+  // 调用时机：
+  // 1. 创建普通节点，待到所有子节点创建完毕后，调用该函数
+  // 2. 创建组件，组件创建完毕后，调用该函数
   function invokeCreateHooks (vnode, insertedVnodeQueue) {
+    // 调用 create 钩子
+    // web 平台的模块钩子函数集合定义在 src/platforms/web/runtime/patch.js
     for (let i = 0; i < cbs.create.length; ++i) {
       cbs.create[i](emptyNode, vnode)
     }

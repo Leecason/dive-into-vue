@@ -25,7 +25,7 @@ export function createMatcher (
     createRouteMap(routes, pathList, pathMap, nameMap)
   }
 
-  // 根据传入的 location 和当前路径计算出新的路径
+  // 根据传入的路径和当前线路计算出匹配的新线路
   function match (
     raw: RawLocation,
     currentRoute?: Route,
@@ -35,7 +35,7 @@ export function createMatcher (
     const location = normalizeLocation(raw, currentRoute, false, router)
     const { name } = location
 
-    // 根据 location.name 匹配到 record，再根据 location 和 record 创建新的路径
+    // 根据 location.name 匹配到 record，再根据 location 和 record 创建新的线路
     if (name) {
       const record = nameMap[name]
       if (process.env.NODE_ENV !== 'production') {

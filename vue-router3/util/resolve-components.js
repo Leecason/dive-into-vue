@@ -3,6 +3,7 @@
 import { _Vue } from '../install'
 import { warn, isError } from './warn'
 
+// 解析异步路由组件，返回类似导航守卫钩子的函数
 export function resolveAsyncComponents (matched: Array<RouteRecord>): Function {
   return (to, from, next) => {
     let hasAsync = false
@@ -15,10 +16,13 @@ export function resolveAsyncComponents (matched: Array<RouteRecord>): Function {
       // we are not using Vue's default async resolving mechanism because
       // we want to halt the navigation until the incoming component has been
       // resolved.
+
+      // 异步路由组件的判断，解析流程类似 vue 的异步组件
       if (typeof def === 'function' && def.cid === undefined) {
         hasAsync = true
         pending++
 
+        // 异步组件解析成功的回调
         const resolve = once(resolvedDef => {
           if (isESModule(resolvedDef)) {
             resolvedDef = resolvedDef.default
@@ -27,10 +31,10 @@ export function resolveAsyncComponents (matched: Array<RouteRecord>): Function {
           def.resolved = typeof resolvedDef === 'function'
             ? resolvedDef
             : _Vue.extend(resolvedDef)
-          match.components[key] = resolvedDef
+          match.components[key] = resolvedDef // 将解析成功的路由组件赋值给对应的路由视图
           pending--
           if (pending <= 0) {
-            next()
+            next() // 解析完成自动执行 next
           }
         })
 
@@ -69,19 +73,23 @@ export function resolveAsyncComponents (matched: Array<RouteRecord>): Function {
   }
 }
 
+// 将数组每个 record 调用 fn，返回的数组中的元素为每个 fn 的返回值
 export function flatMapComponents (
-  matched: Array<RouteRecord>,
+  matched: Array<RouteRecord>, // record 数组
   fn: Function
 ): Array<?Function> {
   return flatten(matched.map(m => {
+    // key 为路由对象定义的路由视图名称
     return Object.keys(m.components).map(key => fn(
-      m.components[key],
-      m.instances[key],
-      m, key
+      m.components[key], // 路由视图对应的路由组件
+      m.instances[key], // 路由视图对应的路由组件实例
+      m, // record
+      key // 路由视图名称
     ))
   }))
 }
 
+// 数组扁平化
 export function flatten (arr: Array<any>): Array<any> {
   return Array.prototype.concat.apply([], arr)
 }

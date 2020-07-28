@@ -94,8 +94,8 @@ function addRouteRecord (
   const record: RouteRecord = {
     path: normalizedPath,
     regex: compileRouteRegex(normalizedPath, pathToRegexpOptions),
-    components: route.components || { default: route.component },
-    instances: {},
+    components: route.components || { default: route.component },  // 路由组件
+    instances: {}, // 路由组件实例
     name,
     parent,
     matchAs,

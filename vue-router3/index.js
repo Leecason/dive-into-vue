@@ -73,6 +73,7 @@ export default class VueRouter {
     }
   }
 
+  // 根据传入的 location 和当前线路计算出新的线路
   match (
     raw: RawLocation,
     current?: Route,
@@ -151,15 +152,15 @@ export default class VueRouter {
   }
 
   beforeEach (fn: Function): Function {
-    return registerHook(this.beforeHooks, fn)
+    return registerHook(this.beforeHooks, fn) // 注册 beforeEach 钩子函数
   }
 
   beforeResolve (fn: Function): Function {
-    return registerHook(this.resolveHooks, fn)
+    return registerHook(this.resolveHooks, fn) // 注册 beforeResolve 钩子函数
   }
 
   afterEach (fn: Function): Function {
-    return registerHook(this.afterHooks, fn)
+    return registerHook(this.afterHooks, fn) // 注册 afterEach 钩子函数
   }
 
   onReady (cb: Function, errorCb?: Function) {
@@ -261,8 +262,10 @@ export default class VueRouter {
   }
 }
 
-function registerHook (list: Array<any>, fn: Function): Function {
-  list.push(fn)
+// 注册钩子函数
+function registerHook (list: Array<any> /* 已注册的列表 */, fn: Function /* 需要被注册的钩子函数 */): Function {
+  list.push(fn) // 添加到已注册列表
+  // 返回一个 unregister 函数（注销钩子函数）
   return () => {
     const i = list.indexOf(fn)
     if (i > -1) list.splice(i, 1)

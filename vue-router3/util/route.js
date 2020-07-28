@@ -29,7 +29,7 @@ export function createRoute (
     query,
     params: location.params || {},
     fullPath: getFullPath(location, stringifyQuery), // 计算完整路径
-    matched: record ? formatMatch(record) : []
+    matched: record ? formatMatch(record) : [] // 计算出当前路径到根路径所有的 record
   }
   if (redirectedFrom) {
     route.redirectedFrom = getFullPath(redirectedFrom, stringifyQuery)
@@ -57,10 +57,11 @@ export const START = createRoute(null, {
   path: '/'
 })
 
+// 计算出 record 到根路径之间的所有的 record
 function formatMatch (record: ?RouteRecord): Array<RouteRecord> {
   const res = []
   while (record) {
-    res.unshift(record)
+    res.unshift(record) // 顺序为先父后子
     record = record.parent
   }
   return res
@@ -74,6 +75,7 @@ function getFullPath (
   return (path || '/') + stringify(query) + hash
 }
 
+// 判断 a 和 b 是否是相同路径
 export function isSameRoute (a: Route, b: ?Route): boolean {
   if (b === START) {
     return a === b

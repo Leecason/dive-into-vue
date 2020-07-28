@@ -126,7 +126,7 @@ export default class VueRouter {
 
     const history = this.history
 
-    // 初始化时调用 history.transitionTo 方法做一次路由过渡
+    // 初始化时调用 history.transitionTo 方法做一次路径切换
     if (history instanceof HTML5History || history instanceof HashHistory) {
       const handleInitialScroll = (routeOrError) => {
         const from = history.current
@@ -137,10 +137,12 @@ export default class VueRouter {
           handleScroll(this, routeOrError, from, false)
         }
       }
+      // 初始化监听器
       const setupListeners = (routeOrError) => {
         history.setupListeners()
         handleInitialScroll(routeOrError)
       }
+      // 路由切换成功或失败都将初始化监听器
       history.transitionTo(history.getCurrentLocation(), setupListeners, setupListeners)
     }
 
@@ -171,6 +173,7 @@ export default class VueRouter {
     this.history.onError(errorCb)
   }
 
+  // 导航到一个新的路径
   push (location: RawLocation, onComplete?: Function, onAbort?: Function) {
     // $flow-disable-line
     if (!onComplete && !onAbort && typeof Promise !== 'undefined') {

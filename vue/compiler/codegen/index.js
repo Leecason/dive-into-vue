@@ -29,6 +29,9 @@ export class CodegenState {
     // class 的 genData：src/platforms/web/compiler/modules/class.js
     // style 的 genData：src/platforms/web/compiler/modules/style.js
     this.dataGenFns = pluckModuleFunction(options.modules, 'genData')
+    // 合并「基础指令」和「编译相关指令」（平台相关的指令）
+    // 基础指令定义在 src/compiler/directives/index.js，包括 v-on v-bind v-cloak
+    // web 平台编译相关指令定义在 src/platforms/web/compiler/directives/index.js，包括 v-model v-text v-html
     this.directives = extend(extend({}, baseDirectives), options.directives)
     const isReservedTag = options.isReservedTag || no
     this.maybeComponent = (el: ASTElement) => !!el.component || !isReservedTag(el.tag)
@@ -243,8 +246,9 @@ export function genData (el: ASTElement, state: CodegenState): string {
 
   // directives first.
   // directives may mutate the el's other properties before they are generated.
+  // 生成指令相关的代码必须优先调用，因为指令代码在生成过程中可能会改变 AST 元素上的其它属性，例如组件 v-model 会给 el 添加 model 属性
   const dirs = genDirectives(el, state)
-  if (dirs) data += dirs + ','
+  if (dirs) data += dirs + ',' // 将指令相关代码串拼接在 data 后面
 
   // key
   if (el.key) {
@@ -299,6 +303,8 @@ export function genData (el: ASTElement, state: CodegenState): string {
     data += `${genScopedSlots(el, el.scopedSlots, state)},`
   }
   // component v-model
+  // 在上方的 genDirectives 时如果在模版中给组件添加了 v-model
+  // 则会给 el 添加 model 属性，在这里将 model 属性添加到 data 中
   if (el.model) {
     data += `model:{value:${
       el.model.value
@@ -333,15 +339,17 @@ export function genData (el: ASTElement, state: CodegenState): string {
   return data
 }
 
+// 生成指令相关代码
 function genDirectives (el: ASTElement, state: CodegenState): string | void {
-  const dirs = el.directives
+  const dirs = el.directives // 获取 AST 元素的 directives 属性
   if (!dirs) return
-  let res = 'directives:['
+  let res = 'directives:[' // 待拼接的代码，可以看到最后生成的代码是个数组
   let hasRuntime = false
   let i, l, dir, needRuntime
-  for (i = 0, l = dirs.length; i < l; i++) {
+  for (i = 0, l = dirs.length; i < l; i++) { // 遍历指令
     dir = dirs[i]
     needRuntime = true
+    // 通过指令名称拿到对应的指令函数
     const gen: DirectiveFunction = state.directives[dir.name]
     if (gen) {
       // compile-time directive that manipulates AST.
@@ -359,8 +367,8 @@ function genDirectives (el: ASTElement, state: CodegenState): string | void {
       }},`
     }
   }
-  if (hasRuntime) {
-    return res.slice(0, -1) + ']'
+  if (hasRuntime) { // 只有需要运行时逻辑的指令才会返回这段代码
+    return res.slice(0, -1) + ']' // 移除掉最后一个逗号，拼接 `]`
   }
 }
 

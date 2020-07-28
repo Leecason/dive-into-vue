@@ -22,7 +22,7 @@ import {
 } from '../helpers'
 
 export const onRE = /^@|^v-on:/
-export const dirRE = process.env.VBIND_PROP_SHORTHAND // 匹配 `v-`，`@`，`:`，`.` 修饰符
+export const dirRE = process.env.VBIND_PROP_SHORTHAND // 匹配 `v-`，`@`，`:`，`.` 指令修饰符
   ? /^v-|^@|^:|^\.|^#/
   : /^v-|^@|^:|^#/
 export const forAliasRE = /([\s\S]*?)\s+(?:in|of)\s+([\s\S]*)/
@@ -30,7 +30,7 @@ export const forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/
 const stripParensRE = /^\(|\)$/g
 const dynamicArgRE = /^\[.*\]$/
 
-const argRE = /:(.*)$/
+const argRE = /:(.*)$/ // 匹配指令的参数
 export const bindRE = /^:|^\.|^v-bind:/
 const propBindRE = /^\./
 const modifierRE = /\.[^.\]]+(?=[^\]]*$)/g // 匹配修饰符
@@ -882,8 +882,8 @@ function processAttrs (el) {
         }
         // 添加事件处理器，方法定义在 src/compiler/helpers.js
         addHandler(el, name, value, modifiers, false, warn, list[i], isDynamic)
-      } else { // normal directives
-        name = name.replace(dirRE, '')
+      } else { // 普通的指令
+        name = name.replace(dirRE, '') // 去掉前面的 v- | @ | :
         // parse arg
         const argMatch = name.match(argRE)
         let arg = argMatch && argMatch[1]
@@ -895,7 +895,10 @@ function processAttrs (el) {
             isDynamic = true
           }
         }
+        // 添加指令，包括自定义指令和内置指令 v-model 等
+        // 定义在 src/compiler/helpers.js
         addDirective(el, name, rawName, value, arg, isDynamic, modifiers, list[i])
+        // 非生产环境下，对 v-model 在 v-for 中的使用进行校验
         if (process.env.NODE_ENV !== 'production' && name === 'model') {
           checkForAliasModel(el, value)
         }
@@ -998,6 +1001,7 @@ function guardIESVGBug (attrs) {
   return res
 }
 
+// 对 v-model 在 v-for 中的使用进行检测
 function checkForAliasModel (el, value) {
   let _el = el
   while (_el) {

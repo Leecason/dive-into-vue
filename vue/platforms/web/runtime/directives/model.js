@@ -31,9 +31,10 @@ const directive = {
         setSelected(el, binding, vnode.context)
       }
       el._vOptions = [].map.call(el.options, getValue)
-    } else if (vnode.tag === 'textarea' || isTextInputType(el.type)) {
+    } else if (vnode.tag === 'textarea' || isTextInputType(el.type)) { // 普通的表单输入组件
       el._vModifiers = binding.modifiers
       if (!binding.modifiers.lazy) {
+        // 监听输入法组合输入事件，为了保证不会在输入法组合文字的过程中触发 v-model 绑定值的更新
         el.addEventListener('compositionstart', onCompositionStart)
         el.addEventListener('compositionend', onCompositionEnd)
         // Safari < 10.2 & UIWebView doesn't fire compositionend when
@@ -127,15 +128,17 @@ function getValue (option) {
     : option.value
 }
 
+// 输入法语言组合输入的开始回调
 function onCompositionStart (e) {
-  e.target.composing = true
+  e.target.composing = true // 表示正在语言输入中，此时不会触发更新
 }
 
+// 输入法语言组合输入的结束回调
 function onCompositionEnd (e) {
   // prevent triggering an input event for no reason
   if (!e.target.composing) return
   e.target.composing = false
-  trigger(e.target, 'input')
+  trigger(e.target, 'input') // 手动触发 input 事件触发更新
 }
 
 function trigger (el, type) {

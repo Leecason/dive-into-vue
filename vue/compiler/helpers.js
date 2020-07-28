@@ -20,6 +20,7 @@ export function pluckModuleFunction<F: Function> (
     : []
 }
 
+// 给 el 添加 prop
 export function addProp (el: ASTElement, name: string, value: string, range?: Range, dynamic?: boolean) {
   (el.props || (el.props = [])).push(rangeSetItem({ name, value, dynamic }, range))
   el.plain = false
@@ -40,15 +41,16 @@ export function addRawAttr (el: ASTElement, name: string, value: any, range?: Ra
 }
 
 export function addDirective (
-  el: ASTElement,
-  name: string,
+  el: ASTElement, // AST 节点
+  name: string, // 指令名，不包括 v- 前缀
   rawName: string,
-  value: string,
-  arg: ?string,
-  isDynamicArg: boolean,
-  modifiers: ?ASTModifiers,
+  value: string, // 绑定的值，v-directive="value"
+  arg: ?string, // 传给指令的参数 v-directive:arg
+  isDynamicArg: boolean, // 是否为动态参数 v-directive:[arg]
+  modifiers: ?ASTModifiers, // 指令修饰符 v-directive.foo.bar
   range?: Range
 ) {
+  // 构造指令对象，将其添加到 el.directives 中
   (el.directives || (el.directives = [])).push(rangeSetItem({
     name,
     rawName,

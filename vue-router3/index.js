@@ -265,6 +265,7 @@ function createHref (base: string, fullPath: string, mode) {
   return base ? cleanPath(base + '/' + path) : path
 }
 
+// 注册 VueRouter 的方法，在 Vue.use(VueRouter) 时被调用
 VueRouter.install = install
 VueRouter.version = '__VERSION__'
 

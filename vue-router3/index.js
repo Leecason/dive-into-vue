@@ -36,22 +36,26 @@ export default class VueRouter {
   constructor (options: RouterOptions = {}) {
     this.app = null
     this.apps = []
-    this.options = options
+    this.options = options // 路由配置
+    // 导航守卫相关
     this.beforeHooks = []
     this.resolveHooks = []
     this.afterHooks = []
-    this.matcher = createMatcher(options.routes || [], this)
+    this.matcher = createMatcher(options.routes || [], this) // 传入配置中的路由定义和 VueRouter 实例
 
-    let mode = options.mode || 'hash'
+    let mode = options.mode || 'hash' // 默认为 hash 模式
     this.fallback = mode === 'history' && !supportsPushState && options.fallback !== false
+     // 如果不支持 history 且允许降级则降级为 hash 模式
     if (this.fallback) {
       mode = 'hash'
     }
+    // 非浏览器环境为抽象模式
     if (!inBrowser) {
       mode = 'abstract'
     }
     this.mode = mode
 
+    // 根据不同模式来实例 history
     switch (mode) {
       case 'history':
         this.history = new HTML5History(this, options.base)
@@ -81,6 +85,7 @@ export default class VueRouter {
     return this.history && this.history.current
   }
 
+  // 初始化路由，执行时机是在根 vue 实例的 beforeCreate 阶段，参数 app 为根 vue 实例
   init (app: any /* Vue component instance */) {
     process.env.NODE_ENV !== 'production' && assert(
       install.installed,
@@ -92,6 +97,8 @@ export default class VueRouter {
 
     // set up app destroyed handler
     // https://github.com/vuejs/vue-router/issues/2639
+
+    // 根 vue 实例销毁时将其从 this.apps 中移除
     app.$once('hook:destroyed', () => {
       // clean out app from this.apps array once destroyed
       const index = this.apps.indexOf(app)
@@ -109,6 +116,7 @@ export default class VueRouter {
 
     // main app previously initialized
     // return as we don't need to set up new history listener
+    // 保证下方设置 history 监听器的逻辑只执行一次
     if (this.app) {
       return
     }
@@ -117,6 +125,7 @@ export default class VueRouter {
 
     const history = this.history
 
+    // 初始化时调用 history.transitionTo 方法做一次路由过渡
     if (history instanceof HTML5History || history instanceof HashHistory) {
       const handleInitialScroll = (routeOrError) => {
         const from = history.current

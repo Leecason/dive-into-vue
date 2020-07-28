@@ -72,8 +72,9 @@ export class History {
     this.errorCbs.push(errorCb)
   }
 
+  // 切换路径
   transitionTo (
-    location: RawLocation,
+    location: RawLocation, // 目标路径
     onComplete?: Function,
     onAbort?: Function
   ) {

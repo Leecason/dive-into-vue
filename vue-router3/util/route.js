@@ -5,6 +5,7 @@ import { stringifyQuery } from './query'
 
 const trailingSlashRE = /\/?$/
 
+// 根据 record 和 location 创建路径对象
 export function createRoute (
   record: ?RouteRecord,
   location: Location,
@@ -13,11 +14,13 @@ export function createRoute (
 ): Route {
   const stringifyQuery = router && router.options.stringifyQuery
 
+  // 克隆 query
   let query: any = location.query || {}
   try {
     query = clone(query)
   } catch (e) {}
 
+  // 创建路径对象
   const route: Route = {
     name: location.name || (record && record.name),
     meta: (record && record.meta) || {},
@@ -25,12 +28,13 @@ export function createRoute (
     hash: location.hash || '',
     query,
     params: location.params || {},
-    fullPath: getFullPath(location, stringifyQuery),
+    fullPath: getFullPath(location, stringifyQuery), // 计算完整路径
     matched: record ? formatMatch(record) : []
   }
   if (redirectedFrom) {
     route.redirectedFrom = getFullPath(redirectedFrom, stringifyQuery)
   }
+  // 冻结路径路径对象，避免外部做修改
   return Object.freeze(route)
 }
 

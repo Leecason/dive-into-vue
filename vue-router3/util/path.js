@@ -1,5 +1,6 @@
 /* @flow */
 
+// 根据传入的相对路径和当前路径做一次计算
 export function resolvePath (
   relative: string,
   base: string,
@@ -42,6 +43,7 @@ export function resolvePath (
   return stack.join('/')
 }
 
+// 根据路径解析出 path，query，hash
 export function parsePath (path: string): {
   path: string;
   query: string;
@@ -69,6 +71,7 @@ export function parsePath (path: string): {
   }
 }
 
+// 移除路径中间连续出现的 `/`，主要用在 path 拼接的时候
 export function cleanPath (path: string): string {
   return path.replace(/\/\//g, '/')
 }

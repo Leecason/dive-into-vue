@@ -7,6 +7,7 @@ import { fillParams } from './params'
 import { warn } from './warn'
 import { extend } from './misc'
 
+// 根据传入的 location 和当前的路径计算出一个新的 location 对象
 export function normalizeLocation (
   raw: RawLocation,
   current: ?Route,
@@ -15,7 +16,7 @@ export function normalizeLocation (
 ): Location {
   let next: Location = typeof raw === 'string' ? { path: raw } : raw
   // named target
-  if (next._normalized) {
+  if (next._normalized) { // 已经被规范化
     return next
   } else if (next.name) {
     next = extend({}, raw)
@@ -43,12 +44,15 @@ export function normalizeLocation (
     return next
   }
 
+  // 根据路径解析出 path，query，hash
   const parsedPath = parsePath(next.path || '')
   const basePath = (current && current.path) || '/'
+  // 根据相对路径和当前路径做一次计算
   const path = parsedPath.path
     ? resolvePath(parsedPath.path, basePath, append || next.append)
     : basePath
 
+  // 计算 query
   const query = resolveQuery(
     parsedPath.query,
     next.query,
@@ -60,8 +64,9 @@ export function normalizeLocation (
     hash = `#${hash}`
   }
 
+  // 返回一个 location 对象
   return {
-    _normalized: true,
+    _normalized: true, // 标记已被规范化
     path,
     query,
     hash

@@ -14,28 +14,34 @@ export type Matcher = {
 };
 
 export function createMatcher (
-  routes: Array<RouteConfig>,
-  router: VueRouter
+  routes: Array<RouteConfig>,  // 路由配置
+  router: VueRouter // VueRouter 实例
 ): Matcher {
+  // 创建路由映射表，包括路径和名称到路由 record 的映射表，方便通过 path 和 name 查找对应的路由 record
   const { pathList, pathMap, nameMap } = createRouteMap(routes)
 
+  // API，允许动态添加路由
   function addRoutes (routes) {
     createRouteMap(routes, pathList, pathMap, nameMap)
   }
 
+  // 根据传入的 location 和当前路径计算出新的路径
   function match (
     raw: RawLocation,
     currentRoute?: Route,
     redirectedFrom?: Location
   ): Route {
+    // 根据传入的 location 和当前路径计算出新的 location
     const location = normalizeLocation(raw, currentRoute, false, router)
     const { name } = location
 
+    // 根据 location.name 匹配到 record，再根据 location 和 record 创建新的路径
     if (name) {
       const record = nameMap[name]
       if (process.env.NODE_ENV !== 'production') {
         warn(record, `Route with name '${name}' does not exist`)
       }
+      // 没有匹配的 record，创建空 record 路径
       if (!record) return _createRoute(null, location)
       const paramNames = record.regex.keys
         .filter(key => !key.optional)
@@ -54,8 +60,9 @@ export function createMatcher (
       }
 
       location.path = fillParams(record.path, location.params, `named route "${name}"`)
+       // 使用 record 和 location 创建路径对象
       return _createRoute(record, location, redirectedFrom)
-    } else if (location.path) {
+    } else if (location.path) { // 根据 location.path 匹配到 record，再根据 location 和 record 创建路径对象
       location.params = {}
       for (let i = 0; i < pathList.length; i++) {
         const path = pathList[i]
@@ -66,6 +73,7 @@ export function createMatcher (
       }
     }
     // no match
+    // 没有匹配 location 的 record，创建空 record 路径
     return _createRoute(null, location)
   }
 
@@ -151,7 +159,7 @@ export function createMatcher (
   }
 
   function _createRoute (
-    record: ?RouteRecord,
+    record: ?RouteRecord, // 路由 record，也可以为空
     location: Location,
     redirectedFrom?: Location
   ): Route {

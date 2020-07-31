@@ -53,6 +53,7 @@ export class History {
     this.listeners = []
   }
 
+  // 监听回调，在路由更新时触发
   listen (cb: Function) {
     this.cb = cb
   }
@@ -263,7 +264,7 @@ export class History {
    // 更新路径
   updateRoute (route: Route) {
     this.current = route // 替换新路径
-    this.cb && this.cb(route)
+    this.cb && this.cb(route) // 触发监听的回调，监听函数定义在 src/index.js VueRouter 实例的 init 方法中
   }
 
   setupListeners () {

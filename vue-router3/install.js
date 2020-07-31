@@ -29,14 +29,17 @@ export function install (Vue) {
         this._routerRoot = this // 将根 vue 实例赋值给 _routerRoot
         this._router = this.$options.router // 将 router 实例保留到 _router
         this._router.init(this) // 初始化路由，会进行一次初始化跳转
+        // <router-view> 的 render 函数中依赖该属性，为了让路由更新时重新渲染 <router-view>，需要将根实例的 _route 变为响应式属性
         Vue.util.defineReactive(this, '_route', this._router.history.current)
       } else { // 普通 vue 实例
         // 每个 vue 实例通过 _routerRoot 都能访问到根 vue 实例，也就能取到 router 实例
         this._routerRoot = (this.$parent && this.$parent._routerRoot) || this
       }
+      // 在映射表中注册路由组件实例，目的是将实例作为导航守卫钩子的执行上下文
       registerInstance(this, this)
     },
     destroyed () {
+      // 注销映射表中的路由组件实例
       registerInstance(this)
     }
   })

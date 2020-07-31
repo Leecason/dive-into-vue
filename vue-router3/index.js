@@ -146,6 +146,7 @@ export default class VueRouter {
       history.transitionTo(history.getCurrentLocation(), setupListeners, setupListeners)
     }
 
+    // 监听路由变化，修改 app 的 _route，触发 <router-view> 的重新渲染
     history.listen(route => {
       this.apps.forEach((app) => {
         app._route = route

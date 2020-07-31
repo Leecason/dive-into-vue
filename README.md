@@ -21,9 +21,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 ## 版本号
 
-- vue@2.x: **v2.6.11**
+- `vue@2.x`: **v2.6.11**
 
-- vue-router@3.x: **v3.3.4**
+- `vue-router@3.x`: **v3.3.4**
 
 ## TODO
 

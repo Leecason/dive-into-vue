@@ -118,6 +118,7 @@ function isObjectEqual (a = {}, b = {}): boolean {
   })
 }
 
+// 判断 target 是否包含 current 路径
 export function isIncludedRoute (current: Route, target: Route): boolean {
   return (
     current.path.replace(trailingSlashRE, '/').indexOf(

@@ -14,6 +14,7 @@ const noop = () => {}
 export default {
   name: 'RouterLink',
   props: {
+    // 目标路径
     to: {
       type: toTypes,
       required: true
@@ -37,14 +38,16 @@ export default {
     }
   },
   render (h: Function) {
-    const router = this.$router
-    const current = this.$route
+    const router = this.$router // VueRouter 实例
+    const current = this.$route // 当前路径
+    // 解析获得目标 location，路径和 href
     const { location, route, href } = router.resolve(
       this.to,
       current,
       this.append
     )
 
+    // 处理 activeClass 和 exactActiveClass，优先使用该组件定义的 class，使用全局配置的 class 作为 fallback
     const classes = {}
     const globalActiveClass = router.options.linkActiveClass
     const globalExactActiveClass = router.options.linkExactActiveClass
@@ -66,16 +69,20 @@ export default {
       ? createRoute(null, normalizeLocation(route.redirectedFrom), null, router)
       : route
 
+    // 当目标路径和当前路径完全匹配时，添加 exactActiveClass
     classes[exactActiveClass] = isSameRoute(current, compareTarget)
+    // 而当目标路径包含当前路径的时候，通过 exact 来判断是否添加 activeClass
     classes[activeClass] = this.exact
       ? classes[exactActiveClass]
       : isIncludedRoute(current, compareTarget)
 
     const ariaCurrentValue = classes[exactActiveClass] ? this.ariaCurrentValue : null
 
+    // 事件回调函数
     const handler = e => {
-      if (guardEvent(e)) {
-        if (this.replace) {
+      if (guardEvent(e)) { // 事件守卫
+        // 路由跳转
+        if (this.replace) { // 是否记入历史栈
           router.replace(location, noop)
         } else {
           router.push(location, noop)
@@ -84,6 +91,7 @@ export default {
     }
 
     const on = { click: guardEvent }
+    // 绑定事件
     if (Array.isArray(this.event)) {
       this.event.forEach(e => {
         on[e] = handler
@@ -92,7 +100,7 @@ export default {
       on[this.event] = handler
     }
 
-    const data: any = { class: classes }
+    const data: any = { class: classes } // 添加 class
 
     const scopedSlot =
       !this.$scopedSlots.$hasNormal &&
@@ -121,13 +129,13 @@ export default {
       }
     }
 
-    if (this.tag === 'a') {
-      data.on = on
-      data.attrs = { href, 'aria-current': ariaCurrentValue }
-    } else {
+    if (this.tag === 'a') { // <router-link> 为 <a> 标签
+      data.on = on // 绑定事件
+      data.attrs = { href, 'aria-current': ariaCurrentValue } // 添加属性
+    } else { // <router-link> 不是 <a> 标签
       // find the first <a> child and apply listener and href
-      const a = findAnchor(this.$slots.default)
-      if (a) {
+      const a = findAnchor(this.$slots.default) // 递归查找第一个子 <a> 标签
+      if (a) { // 子节点有 <a> 标签，将事件和属性绑定在该 <a> 标签上
         // in case the <a> is a static node
         a.isStatic = false
         const aData = (a.data = extend({}, a.data))
@@ -152,7 +160,7 @@ export default {
         const aAttrs = (a.data.attrs = extend({}, a.data.attrs))
         aAttrs.href = href
         aAttrs['aria-current'] = ariaCurrentValue
-      } else {
+      } else { // 子节点没有 <a> 标签，只绑定事件，不传入 attrs
         // doesn't have <a> child, apply listener to self
         data.on = on
       }
@@ -162,6 +170,7 @@ export default {
   }
 }
 
+// 事件守卫
 function guardEvent (e) {
   // don't redirect with control keys
   if (e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return
@@ -181,6 +190,7 @@ function guardEvent (e) {
   return true
 }
 
+// 递归查找子节点的第一个 <a> 标签
 function findAnchor (children) {
   if (children) {
     let child

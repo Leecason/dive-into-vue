@@ -238,15 +238,18 @@ export default class VueRouter {
     resolved: Route
   } {
     current = current || this.history.current
+    // 规范生成目标 location
     const location = normalizeLocation(
       to,
       current,
       append,
       this
     )
+    // 计算出目标路径
     const route = this.match(location, current)
     const fullPath = route.redirectedFrom || route.fullPath
     const base = this.history.base
+    // 计算最终跳转的 href
     const href = createHref(base, fullPath, this.mode)
     return {
       location,
@@ -276,6 +279,7 @@ function registerHook (list: Array<any> /* 已注册的列表 */, fn: Function /
   }
 }
 
+// 根据 base 和 fullPath 计算 href
 function createHref (base: string, fullPath: string, mode) {
   var path = mode === 'hash' ? '#' + fullPath : fullPath
   return base ? cleanPath(base + '/' + path) : path

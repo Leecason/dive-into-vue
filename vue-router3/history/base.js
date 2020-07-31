@@ -263,7 +263,7 @@ export class History {
 
    // 更新路径
   updateRoute (route: Route) {
-    this.current = route // 替换新路径
+    this.current = route // 更新替换新路径，作为下一次路径切换的依据
     this.cb && this.cb(route) // 触发监听的回调，监听函数定义在 src/index.js VueRouter 实例的 init 方法中
   }
 

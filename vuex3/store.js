@@ -10,36 +10,44 @@ export class Store {
     // Auto install if it is not done yet and `window` has `Vue`.
     // To allow users to avoid auto-installation in some cases,
     // this code should be placed here. See #731
+
+    // 在浏览器环境下，允许通过外链的方式去使用 Vue 和 Vuex，，在实例 Store 之前自动安装 Vuex
     if (!Vue && typeof window !== 'undefined' && window.Vue) {
       install(window.Vue)
     }
 
     if (__DEV__) {
+      // 实例 Store 前必须先安装 Vuex
       assert(Vue, `must call Vue.use(Vuex) before creating a store instance.`)
+      // 依赖 Promise
       assert(typeof Promise !== 'undefined', `vuex requires a Promise polyfill in this browser.`)
+      // Store 只能作为构造函数被使用
       assert(this instanceof Store, `store must be called with the new operator.`)
     }
 
     const {
+       // 应用在 store 上的插件，每个插件接收 store 作为唯一参数，可以监听 mutations（用于外部地数据持久化、记录或调试）或者提交 mutation（用于内部数据，例如 websocket 或 某些观察者）
       plugins = [],
+       // 严格模式，在严格模式下，任何 mutation 处理函数以外修改 Vuex state 都会抛出错误
       strict = false
     } = options
 
     // store internal state
     this._committing = false
-    this._actions = Object.create(null)
-    this._actionSubscribers = []
-    this._mutations = Object.create(null)
-    this._wrappedGetters = Object.create(null)
-    this._modules = new ModuleCollection(options)
+    this._actions = Object.create(null) // 存放 actions
+    this._actionSubscribers = [] // actions 订阅者
+    this._mutations = Object.create(null) // 存放 mutations
+    this._wrappedGetters = Object.create(null) // 存放 getters
+    this._modules = new ModuleCollection(options) // module 收集器
     this._modulesNamespaceMap = Object.create(null)
-    this._subscribers = []
+    this._subscribers = [] // 订阅者
     this._watcherVM = new Vue()
     this._makeLocalGettersCache = Object.create(null)
 
     // bind commit and dispatch to self
     const store = this
     const { dispatch, commit } = this
+    // 修改 dispatch 和 commit 的执行上下文为 store 本身，否则在组件内部使用 this.dispatch 时会指向 vue 实例
     this.dispatch = function boundDispatch (type, payload) {
       return dispatch.call(store, type, payload)
     }
@@ -48,6 +56,7 @@ export class Store {
     }
 
     // strict mode
+    // 严格模式，在严格模式下，任何 mutation 处理函数以外修改 Vuex state 都会抛出错误
     this.strict = strict
 
     const state = this._modules.root.state
@@ -55,15 +64,22 @@ export class Store {
     // init root module.
     // this also recursively registers all sub-modules
     // and collects all module getters inside this._wrappedGetters
-    installModule(this, state, [], this._modules.root)
+
+    // 初始化根 module，过程中同时递归注册所有子 module
+    // 收集所有 module 的 getter 到 _wrappedGetters
+    installModule(this, state, [], this._modules.root /* 根 module 才独有的 module 对象 */)
 
     // initialize the store vm, which is responsible for the reactivity
     // (also registers _wrappedGetters as computed properties)
+
+    // 通过 vm 重设 store，使用 vue 内部的响应式实现注册 state 以及 computed */
     resetStoreVM(this, state)
 
     // apply plugins
+    // 调用插件
     plugins.forEach(plugin => plugin(this))
 
+    // devtool 插件
     const useDevtools = options.devtools !== undefined ? options.devtools : Vue.config.devtools
     if (useDevtools) {
       devtoolPlugin(this)

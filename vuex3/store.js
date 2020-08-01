@@ -536,7 +536,9 @@ function unifyObjectStyle (type, payload, options) {
   return { type, payload, options }
 }
 
+// 安装 Vuex 插件的方法
 export function install (_Vue) {
+  // 防止重复安装
   if (Vue && _Vue === Vue) {
     if (__DEV__) {
       console.error(
@@ -545,6 +547,6 @@ export function install (_Vue) {
     }
     return
   }
-  Vue = _Vue
-  applyMixin(Vue)
+  Vue = _Vue // 缓存 Vue
+  applyMixin(Vue) // 向全局混入 beforeCreate 钩子，在钩子中将注入的 Vuex.Store 实例绑定到 vue 实例上
 }

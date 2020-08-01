@@ -1,12 +1,14 @@
 import Module from './module'
 import { assert, forEachValue } from '../util'
 
+// module 收集器
 export default class ModuleCollection {
   constructor (rawRootModule) {
     // register root module (Vuex.Store options)
-    this.register([], rawRootModule, false)
+    this.register([], rawRootModule, false) // 注册根 module
   }
 
+  // 根据 path 获取对应的 module
   get (path) {
     return path.reduce((module, key) => {
       return module.getChild(key)
@@ -25,23 +27,25 @@ export default class ModuleCollection {
     update([], this.root, rawRootModule)
   }
 
-  register (path, rawModule, runtime = true) {
+  register (path /* module 路径*/, rawModule /* module 定义 */, runtime = true /* 动态注册 */) {
     if (__DEV__) {
       assertRawModule(path, rawModule)
     }
 
-    const newModule = new Module(rawModule, runtime)
-    if (path.length === 0) {
+    const newModule = new Module(rawModule, runtime) // 实例一个 module
+    if (path.length === 0) { // 根 module
       this.root = newModule
     } else {
-      const parent = this.get(path.slice(0, -1))
-      parent.addChild(path[path.length - 1], newModule)
+      // 建立 module 父子关系
+      const parent = this.get(path.slice(0, -1)) // 获取父级 module
+      parent.addChild(path[path.length - 1], newModule) // 向父 module 中添加子 module
     }
 
     // register nested modules
+    // 递归注册 module
     if (rawModule.modules) {
       forEachValue(rawModule.modules, (rawChildModule, key) => {
-        this.register(path.concat(key), rawChildModule, runtime)
+        this.register(path.concat(key) /* 拼接 path */, rawChildModule, runtime)
       })
     }
   }

@@ -54,22 +54,26 @@ export default class Module {
     }
   }
 
+  // 遍历子 module
   forEachChild (fn) {
     forEachValue(this._children, fn)
   }
 
+  // 遍历 getter
   forEachGetter (fn) {
     if (this._rawModule.getters) {
       forEachValue(this._rawModule.getters, fn)
     }
   }
 
+  // 遍历 action
   forEachAction (fn) {
     if (this._rawModule.actions) {
       forEachValue(this._rawModule.actions, fn)
     }
   }
 
+  // 遍历 mutation
   forEachMutation (fn) {
     if (this._rawModule.mutations) {
       forEachValue(this._rawModule.mutations, fn)

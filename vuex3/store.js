@@ -35,12 +35,12 @@ export class Store {
     // store internal state
     this._committing = false
     this._actions = Object.create(null) // 存放 actions
-    this._actionSubscribers = [] // actions 订阅者
+    this._actionSubscribers = [] // action 订阅者
     this._mutations = Object.create(null) // 存放 mutations
     this._wrappedGetters = Object.create(null) // 存放 getters
     this._modules = new ModuleCollection(options) // module 收集器
     this._modulesNamespaceMap = Object.create(null)
-    this._subscribers = [] // 订阅者
+    this._subscribers = [] // mutation 订阅者
     this._watcherVM = new Vue()
     this._makeLocalGettersCache = Object.create(null) // namespaced module 对应 getters 代理的缓存
 
@@ -123,9 +123,10 @@ export class Store {
       })
     })
 
+    // 通知所有 mutation 订阅者
     this._subscribers
       .slice() // shallow copy to prevent iterator invalidation if subscriber synchronously calls unsubscribe
-      .forEach(sub => sub(mutation, this.state))
+      .forEach(sub => sub(mutation, this.state /* 最新的 state */))
 
     if (
       __DEV__ &&
@@ -157,6 +158,7 @@ export class Store {
     }
 
     try {
+      // 通知所有 action 订阅者
       this._actionSubscribers
         .slice() // shallow copy to prevent iterator invalidation if subscriber synchronously calls unsubscribe
         .filter(sub => sub.before)
@@ -204,6 +206,7 @@ export class Store {
     })
   }
 
+  // 注册一个订阅函数，返回一个取消订阅的函数
   subscribe (fn, options) {
     return genericSubscribe(fn, this._subscribers, options)
   }
@@ -289,6 +292,7 @@ export class Store {
   }
 }
 
+// 注册一个订阅函数，返回一个取消订阅的函数
 function genericSubscribe (fn, subs, options) {
   if (subs.indexOf(fn) < 0) {
     options && options.prepend

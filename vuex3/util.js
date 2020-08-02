@@ -19,6 +19,8 @@ export function find (list, f) {
  * @param {Array<Object>} cache
  * @return {*}
  */
+
+// 深拷贝
 export function deepCopy (obj, cache = []) {
   // just return if obj is immutable value
   if (obj === null || typeof obj !== 'object') {

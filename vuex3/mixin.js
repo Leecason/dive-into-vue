@@ -4,7 +4,7 @@ export default function (Vue) {
 
   // 用于 Vue2.x 的逻辑
   if (version >= 2) {
-    Vue.mixin({ beforeCreate: vuexInit }) // 向全局混入 beforeCreate 钩子
+    Vue.mixin({ beforeCreate: vuexInit }) // 向全局混入 beforeCreate 钩子，在钩子中注入 store 到每个 vue 实例中
   } else { // 用于 Vue1.x 的逻辑
     // override init and inject vuex init procedure
     // for 1.x backwards compatibility.
@@ -19,6 +19,8 @@ export default function (Vue) {
 
   /**
    * Vuex init hook, injected into each instances init hooks list.
+   *
+   * Vuex 的初始化钩子，将 store 注入到每个实例中，使得每个组件可以通过 this.$store 访问到 store 实例
    */
 
   function vuexInit () {

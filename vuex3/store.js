@@ -86,7 +86,8 @@ export class Store {
     }
   }
 
-  // store.state 实际上是 _vm.data.$$state
+  // API，根状态
+  // 得到的值实际上是 _vm.data.$$state
   get state () {
     return this._vm._data.$$state
   }
@@ -97,8 +98,10 @@ export class Store {
     }
   }
 
+  // API，提交 mutation
   commit (_type, _payload, _options) {
     // check object-style commit
+    // 参数校验
     const {
       type,
       payload,
@@ -106,13 +109,14 @@ export class Store {
     } = unifyObjectStyle(_type, _payload, _options)
 
     const mutation = { type, payload }
-    const entry = this._mutations[type]
+    const entry = this._mutations[type] // 取出 type 对应的 mutation
     if (!entry) {
       if (__DEV__) {
         console.error(`[vuex] unknown mutation type: ${type}`)
       }
       return
     }
+    // 执行对应 mutation 中的所有方法，在方法中可以对 state 进行修改，方法是同步执行的
     this._withCommit(() => {
       entry.forEach(function commitIterator (handler) {
         handler(payload)
@@ -134,15 +138,17 @@ export class Store {
     }
   }
 
+  // API，分发 action
   dispatch (_type, _payload) {
     // check object-style dispatch
+    // 参数校验
     const {
       type,
       payload
     } = unifyObjectStyle(_type, _payload)
 
     const action = { type, payload }
-    const entry = this._actions[type]
+    const entry = this._actions[type] // 取出 type 对应的 action
     if (!entry) {
       if (__DEV__) {
         console.error(`[vuex] unknown action type: ${type}`)
@@ -162,10 +168,13 @@ export class Store {
       }
     }
 
+    // type 对应的 action 有多个则将执行结果包装 Promise.all 形成一个新的 Promise
+    // 只有一个则直接返回第一个
     const result = entry.length > 1
       ? Promise.all(entry.map(handler => handler(payload)))
       : entry[0](payload)
 
+    // 返回 Promise，让外部可以使用 dispatch('xxx').then()
     return new Promise((resolve, reject) => {
       result.then(res => {
         try {
@@ -315,6 +324,7 @@ function resetStoreVM (store, state, hot) {
     // direct inline function use will lead to closure preserving oldVm.
     // using partial to return function with only arguments preserved in closure environment.
     computed[key] = partial(fn, store)
+    // API，让 store 暴露出注册的 getters，是个只读属性
     Object.defineProperty(store.getters, key, {
       get: () => store._vm[key],
       enumerable: true // for local getters
@@ -389,7 +399,7 @@ function installModule (store, rootState, path, module, hot) {
     })
   }
 
-  // 构造 module 本地上下文环境
+  // 构造 module 局部上下文环境
   const local = module.context = makeLocalContext(store, namespace, path)
 
   // 遍历注册 module 的 mutation
@@ -421,7 +431,7 @@ function installModule (store, rootState, path, module, hot) {
  * make localized dispatch, commit, getters and state
  * if there is no namespace, just use root ones
  *
- * 构造 module 的 dispatch，commit，getters 和 state 本地上下文环境
+ * 构造 module 的 dispatch，commit，getters 和 state 局部上下文环境
  * 如果没有 namespace 配置，则使用全局上下文环境
  */
 function makeLocalContext (store, namespace, path) {
@@ -469,7 +479,7 @@ function makeLocalContext (store, namespace, path) {
   // because they will be changed by vm update
   Object.defineProperties(local, {
     getters: {
-      // 没有 namespace，直接返回 root store 的 getters，否则构造本地上下文环境的 getters
+      // 没有 namespace，直接返回 root store 的 getters，否则构造局部上下文环境的 getters
       get: noNamespace
         ? () => store.getters
         : () => makeLocalGetters(store, namespace)
@@ -482,7 +492,7 @@ function makeLocalContext (store, namespace, path) {
   return local
 }
 
-// 构造本地上下文环境 getters
+// 构造局部上下文环境 getters
 function makeLocalGetters (store, namespace) {
   if (!store._makeLocalGettersCache[namespace]) {
     const gettersProxy = {} // getters 代理
@@ -511,7 +521,7 @@ function makeLocalGetters (store, namespace) {
 }
 
 // 注册 mutation
-function registerMutation (store, type, handler, local) {
+function registerMutation (store, type, handler /* mutation 处理函数 */, local) {
   // 所有的 mutation 将会被添加到 store._mutations 对象中，同一 type 的 _mutations 可以对应多个方法
   const entry = store._mutations[type] || (store._mutations[type] = [])
   entry.push(function wrappedMutationHandler (payload) {
@@ -520,7 +530,7 @@ function registerMutation (store, type, handler, local) {
 }
 
 // 注册 action
-function registerAction (store, type, handler, local) {
+function registerAction (store, type, handler /* action 处理函数 */, local) {
   // 所有的 action 将会被添加到 store._actions 对象中，同一 type 的 _actions 可以对应多个方法
   const entry = store._actions[type] || (store._actions[type] = [])
   entry.push(function wrappedActionHandler (payload) {
@@ -532,7 +542,7 @@ function registerAction (store, type, handler, local) {
       rootGetters: store.getters, // 根 getters
       rootState: store.state // 根 state
     }, payload)
-    if (!isPromise(res)) {
+    if (!isPromise(res)) { // 让处理函数返回的结果 promise 化
       res = Promise.resolve(res)
     }
     if (store._devtoolHook) {

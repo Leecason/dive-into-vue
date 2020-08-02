@@ -25,9 +25,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 - `vue-router@3.x`: **v3.3.4**
 
-## TODO
+- `vuex@3.x`: **v3.5.1**
 
-- [ ] Vuex3
+## TODO
 
 - [ ] Vue3
 

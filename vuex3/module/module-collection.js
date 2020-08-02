@@ -32,6 +32,7 @@ export default class ModuleCollection {
     update([], this.root, rawRootModule)
   }
 
+  // 注册 module
   register (path /* module 路径*/, rawModule /* module 定义 */, runtime = true /* 动态注册 */) {
     if (__DEV__) {
       assertRawModule(path, rawModule)
@@ -55,6 +56,7 @@ export default class ModuleCollection {
     }
   }
 
+  // 注销 module
   unregister (path) {
     const parent = this.get(path.slice(0, -1))
     const key = path[path.length - 1]
@@ -77,6 +79,7 @@ export default class ModuleCollection {
     parent.removeChild(key)
   }
 
+  // 判断 module 是否注册
   isRegistered (path) {
     const parent = this.get(path.slice(0, -1))
     const key = path[path.length - 1]

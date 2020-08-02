@@ -72,7 +72,7 @@ export class Store {
     // initialize the store vm, which is responsible for the reactivity
     // (also registers _wrappedGetters as computed properties)
 
-    // 设置 store._vm，实例一个 Vue 对象来使 state 以及 getters 变为响应式 */
+    // 设置 store._vm，实例一个 Vue 对象来使 state 以及 getters 变为响应式
     resetStoreVM(this, state)
 
     // apply plugins
@@ -226,32 +226,41 @@ export class Store {
     })
   }
 
-  registerModule (path, rawModule, options = {}) {
-    if (typeof path === 'string') path = [path]
+  // API，注册一个 module，当业务进行异步加载的时候，可以通过该接口进行动态注册 module
+  registerModule (path, rawModule /* module 定义 */, options = {}) {
+    if (typeof path === 'string') path = [path] // 转化成数组
 
     if (__DEV__) {
       assert(Array.isArray(path), `module path must be a string or an Array.`)
+      // 不允许注册根 module
       assert(path.length > 0, 'cannot register the root module by using registerModule.')
     }
 
+    // 注册 module
     this._modules.register(path, rawModule)
+    // 安装 module
     installModule(this, this.state, path, this._modules.get(path), options.preserveState)
     // reset store to update getters...
+    // 重新设置 store._vm
     resetStoreVM(this, this.state)
   }
 
+  // API，注销一个 module
   unregisterModule (path) {
-    if (typeof path === 'string') path = [path]
+    if (typeof path === 'string') path = [path] // 转化成数组
 
     if (__DEV__) {
       assert(Array.isArray(path), `module path must be a string or an Array.`)
     }
 
+    // 注销 module
     this._modules.unregister(path)
+    // 移除 module 的 state
     this._withCommit(() => {
-      const parentState = getNestedState(this.state, path.slice(0, -1))
-      Vue.delete(parentState, path[path.length - 1])
+      const parentState = getNestedState(this.state, path.slice(0, -1)) // 获取父级 state
+      Vue.delete(parentState, path[path.length - 1]) // 从父级中删除
     })
+    // 重新设置 store._vm
     resetStore(this)
   }
 
